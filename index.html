@@ -107,6 +107,28 @@ h1 .ib{width:34px;height:34px;border-radius:11px;background:var(--g);color:#fff;
 .fab{display:flex;align-items:center;justify-content:center;gap:6px}
 .fab .i{width:26px;height:26px;stroke-width:2.2}
 .fab:has(.i + span){padding:0 22px}
+main>.seg+.card,.dg{margin-top:0}
+.hero>*{position:relative;z-index:1}
+.db .big{font-size:30px;margin:14px 0 14px}
+.db .eye{background:#ffffff26;border:0;color:#fff;width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.inbox{background:#ffffff1f;border:1px solid #ffffff33;border-radius:16px;padding:12px 14px}
+.inbox .two{display:flex;gap:12px;margin-top:10px;align-items:center}
+.inbox .two>.st{flex:1;min-width:0;gap:10px}
+.inbox .dv{width:1px;align-self:stretch;background:#ffffff40}
+.hero .ib.in{background:#4ade8033;color:#bbf7d0}.hero .ib.out{background:#f8717140;color:#fecaca}
+.ws{display:flex;gap:12px;overflow-x:auto;margin:0 -14px 12px;padding:4px 14px 10px;scroll-snap-type:x proximity;scrollbar-width:none}
+.ws::-webkit-scrollbar{display:none}
+.wc{flex:none;width:160px;scroll-snap-align:start;position:relative;overflow:hidden;color:#fff;border-radius:18px;padding:12px 14px;opacity:.78;border:2px solid transparent;transition:.15s;box-shadow:var(--sh);cursor:pointer}
+.wc.on{opacity:1;border-color:#ffffffd9;box-shadow:0 12px 24px -10px #0007}
+.wc b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.wl{font-size:12px;opacity:.85;margin-top:14px}
+.wa{font-weight:800;font-size:16px;letter-spacing:-.3px;position:relative;z-index:1}
+.wd{position:absolute;right:-8px;bottom:-10px;opacity:.16}.wd .i{width:64px;height:64px;stroke-width:1.5}
+.ck{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#ffffff40}.ck .i{width:12px;height:12px;stroke-width:3}
+.lnk{color:var(--pri);font-weight:600;font-size:13px;text-decoration:none}
+a.more{display:block;padding:10px 0 4px;text-align:center;color:var(--pri);font-weight:600;font-size:13px;text-decoration:none}
+.acc summary.sm{padding:14px;font-weight:400}
+.acc summary .tm b{font-weight:700}
 </style></head>
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
@@ -133,12 +155,20 @@ buy:'<path d="M6 6h15l-1.5 9h-12zM6 6L5 3H2"/><circle cx="9" cy="20" r="1.3"/><c
 stock:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>',
 rep:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 13h6M9 17h4"/>',
 set:'<path d="M4 6h8M16 6h4M4 12h2M10 12h10M4 18h12"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'};
-const SV={plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/>',trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',bank:'<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',flow:'<path d="M4 8h14l-3-3M20 16H6l3 3"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',dl:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'};
+const SV={plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/>',trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',bank:'<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',flow:'<path d="M4 8h14l-3-3M20 16H6l3 3"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',dl:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0112 6c6 0 10 6 10 6a17 17 0 01-3.2 3.7M6.6 6.7A17 17 0 002 12s4 7 10 7a9.7 9.7 0 004-.9M9.9 9.9a3 3 0 004.2 4.2"/>',check:'<path d="M5 12l5 5 9-10"/>',layers:'<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/>'};
 const ic=(n,c='i')=>`<svg class="${c}" viewBox="0 0 24 24">${SV[n]||IC[n]||''}</svg>`;
 const stat=(ico,cls,l,v)=>`<div class="card st"><div class="ib ${cls}">${ic(ico)}</div><div><div class="mut">${l}</div><b class="${cls}">${v}</b></div></div>`;
+const mk=n=>HID?'Rp ••••••':rp(n);
+const WP=['#16a34a,#4ade80','#2563eb,#60a5fa','#d97706,#fbbf24','#7c3aed,#a78bfa','#db2777,#f472b6','#0891b2,#22d3ee'];
+const wc=(id,name,ico,amt,bg,on)=>`<div class="wc ${on?'on':''}" style="background:linear-gradient(135deg,${bg})" onclick="dw='${id}';render()"><div class="st" style="gap:8px"><span class="wi">${ic(ico)}</span><b>${esc(name)}</b>${on?`<span class="ck">${ic('check')}</span>`:''}</div><div class="wl">${id=='all'?'Total Saldo':'Saldo'}</div><div class="wa">${mk(amt)}</div><span class="wd">${ic(ico)}</span></div>`;
+const toggleHid=()=>{HID=!HID;localStorage.hid=HID?1:0;render()};
+const plabel=p=>p.m=='month'?(m=>BL[m[1]-1]+' '+m[0])((p.month||today().slice(0,7)).split('-')):p.m=='range'?((p.from||p.to)?fd(p.from||'…')+' – '+fd(p.to||'…'):'Semua'):'Bulan Ini';
+const logsOf=(k,id)=>[...D.StockLog].reverse().filter(l=>l.kind==k&&l.itemId==id).sort((a,b)=>b.date.localeCompare(a.date));
+const logRow=l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qty>0?'plus':'minus')}</div><div class="tm"><b>${l.qty>0?'Tambah':'Kurangi'} stok</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="delLog('${l.id}')">${ic('trash')}</button></div>`;
+const accI=(id,sm,b)=>`<details class="card acc" ${OPEN[id]?'open':''} ontoggle="OPEN['${id}']=this.open"><summary class="sm">${sm}</summary><div class="ab">${b}</div></details>`;
 const EMPTY=()=>({Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[],StockLog:[]});
-let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={};
-const P={dash:{m:'this'},sales:{m:'this'},buy:{m:'this'},rep:{m:'this'}};
+let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1';
+const P={dash:{m:'this'},sales:{m:'week'},buy:{m:'week'},rep:{m:'week'}};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const NM={Products:'Produk',Materials:'Bahan Baku',Wallets:'Dompet/Rek.'};
 const acc=(id,t,b,def)=>`<details class="card acc" ${(OPEN[id]??def)?'open':''} ontoggle="OPEN['${id}']=this.open"><summary>${t}</summary><div class="ab">${b}</div></details>`;
@@ -151,20 +181,24 @@ async function api(a,o={}){
   return j;
 }
 function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',3200)}
-function modal(h){$('#mb').innerHTML='<div class="grab"></div>'+h;$('#md').style.display='flex'}
-function closeM(){$('#md').style.display='none'}
+const modalOpen=()=>$('#md').style.display=='flex';
+function modal(h){$('#mb').innerHTML='<div class="grab"></div>'+h;if(!modalOpen())history.pushState({m:1,v:view},'');$('#md').style.display='flex'}
+function hideM(){$('#md').style.display='none';HK=null}
+function closeM(){if(!modalOpen())return;hideM();if(history.state&&history.state.m)history.back()}
 
 // ---------- periode ----------
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function rng(p){
   const t=today(),pad=n=>String(n).padStart(2,'0');
   if(p.m=='range')return[p.from||'0000-01-01',p.to||'9999-12-31'];
+  if(p.m=='week'){const e=new Date(),b=new Date();b.setDate(e.getDate()-6);return[ymd(b),ymd(e)]}
   const m=(p.m=='month'&&p.month)||t.slice(0,7);
   return[m+'-01',m+'-'+pad(new Date(m.slice(0,4),m.slice(5),0).getDate())];
 }
 const inR=(x,p)=>{const[a,b]=rng(p);return x.date>=a&&x.date<=b};
 function periodUI(k){
   const p=P[k],c=(v,l)=>`<button class="${p.m==v?'on':''}" onclick="setP('${k}','m','${v}')">${l}</button>`;
-  return `<div class="seg">${c('this','Bulan ini')}${c('month','Pilih bulan')}${c('range','Rentang')}</div>`+
+  return `<div class="seg">${k=='dash'?c('this','Bulan ini'):c('week','Minggu ini')}${c('month','Pilih bulan')}${c('range','Rentang')}</div>`+
   (p.m=='month'?`<input type="month" value="${p.month||today().slice(0,7)}" onchange="setP('${k}','month',this.value)">`:'')+
   (p.m=='range'?`<div class="g2" style="margin-bottom:0"><div><label>Tanggal awal</label><input type="date" value="${p.from||''}" ${p.to?`max="${p.to}"`:''} onchange="setP('${k}','from',this.value)"></div><div><label>Tanggal akhir</label><input type="date" value="${p.to||''}" ${p.from?`min="${p.from}"`:''} onchange="setP('${k}','to',this.value)"></div></div>`:'');
 }
@@ -197,25 +231,32 @@ const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.
 // ---------- tampilan ----------
 const V={
   dash(){
-    const p=P.dash,i=sum(D.Sales.filter(x=>inR(x,p))),o=sum(D.Purchases.filter(x=>inR(x,p)));
-    const tot=D.Wallets.reduce((a,w)=>a+bal(w),0),last=txs().slice(0,10);
-    const low=[...D.Products.filter(x=>isLow('Products',x)).map(x=>['Products',x]),...D.Materials.filter(x=>isLow('Materials',x)).map(x=>['Materials',x])];
-    return `<div class="card hero st"><div class="ib">${ic('wallet')}</div><div><div class="mut">Total Saldo</div><div class="big">${rp(tot)}</div></div></div>`+periodUI('dash')+
-    `<div class="g2">${stat('down','in','Pemasukan',rp(i))}${stat('up','out','Pengeluaran',rp(o))}</div>
-    <div class="card st"><div class="ib ${i-o<0?'out':'in'}">${ic('flow')}</div><div><div class="mut">Arus kas periode</div><div class="big ${i-o<0?'out':'in'}">${rp(i-o)}</div></div></div>
-    ${low.length?acc('low',ic('alert')+' Stok menipis ('+low.length+')',low.map(([k,x])=>`<div class="tx"><div class="tm"><b>${esc(x.name)}</b><small>${NM[k]} · min ${nf(x.min)}</small></div><span class="bdg out">${nf(stk(k,x).cur)}</span></div>`).join(''),false):''}
-    <div class="dg">${acc('wallets',ic('wallet')+' Dompet & Rekening',D.Wallets.map(w=>`<div class="tx"><div class="ib">${ic(w.type=='Rekening'?'bank':'wallet')}</div><div class="tm"><b>${esc(w.name)}</b><small>${esc(w.type)}</small></div><span class="amt">${rp(bal(w))}</span></div>`).join('')||'<div class="mut">Belum ada. Tambahkan di Setting.</div>',false)}
-    ${acc('last10',ic('clock')+' 10 Transaksi Terakhir',last.map(x=>txRow(x)).join('')||'<div class="mut">Belum ada transaksi.</div>',false)}</div>`;
+    const p=P.dash;
+    if(dw!='all'&&!D.Wallets.some(w=>w.id==dw))dw='all';
+    const sel=dw=='all'?null:D.Wallets.find(w=>w.id==dw),f=x=>!sel||x.walletId==sel.id;
+    const i=sum(D.Sales.filter(x=>inR(x,p)&&f(x))),o=sum(D.Purchases.filter(x=>inR(x,p)&&f(x)));
+    const all=D.Wallets.reduce((a,w)=>a+bal(w),0),tot=sel?bal(sel):all,last=txs().filter(f).slice(0,10);
+    return periodUI('dash')+`<div class="card hero db">
+      <div class="st" style="justify-content:space-between"><div class="st" style="gap:8px">${ic('wallet')}<span class="mut">${sel?'Saldo '+esc(sel.name):'Total Keseluruhan Saldo'}</span></div><button class="eye" onclick="toggleHid()">${ic(HID?'eyeoff':'eye')}</button></div>
+      <div class="big">${mk(tot)}</div>
+      <div class="inbox"><div class="st" style="justify-content:space-between"><b>Arus Kas ${plabel(p)}</b><span class="mut">Selisih ${mk(i-o)}</span></div>
+      <div class="two"><div class="st"><div class="ib in">${ic('down')}</div><div><div class="mut">Pemasukan</div><b>${mk(i)}</b></div></div><div class="dv"></div><div class="st"><div class="ib out">${ic('up')}</div><div><div class="mut">Pengeluaran</div><b>${mk(o)}</b></div></div></div></div></div>
+    <div class="st" style="justify-content:space-between;margin:6px 2px 8px"><b>Dompet & Rekening</b><a href="#" class="lnk" onclick="stab='Wallets';go('set');return false">Kelola</a></div>
+    <div class="ws">${wc('all','Semua','layers',all,'#0f766e,#14b8a6',dw=='all')}${D.Wallets.map((w,n)=>wc(w.id,w.name,w.type=='Rekening'?'bank':'wallet',bal(w),WP[n%WP.length],dw==w.id)).join('')}</div>
+    ${acc('last10',ic('clock')+' 10 Transaksi Terakhir',last.map(x=>txRow(x)).join('')||'<div class="mut">Belum ada transaksi.</div>',false)}`;
   },
   sales:()=>list('Sales'),
   buy:()=>list('Purchases'),
   stock(){
     const k=sk,items=D[k],low=items.filter(x=>isLow(k,x)).length;
-    const logs=D.StockLog.filter(l=>l.kind==k).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
     return `<div class="seg">${['Products','Materials'].map(t=>`<button class="${t==k?'on':''}" onclick="sk='${t}';render()">${NM[t]}</button>`).join('')}</div>
-    <div class="g2"><div class="card"><div class="mut">Jumlah item</div><div class="big">${items.length}</div></div><div class="card"><div class="mut">Stok menipis</div><div class="big ${low?'out':''}">${low}</div></div></div>
-    <div class="card">${items.map(x=>{const s=stk(k,x);return `<div class="tx"><div class="ib ${isLow(k,x)?'out':'in'}">${ic('stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(s.init)} · ${k=='Products'?'Terjual':'Dibeli'} ${nf(s.mv)} · Koreksi ${s.adj>0?'+':''}${nf(s.adj)}</small></div><span class="bdg ${isLow(k,x)?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="openAdj('${k}','${x.id}')">Atur</button></div>`}).join('')||`<div class="mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`}</div>
-    ${logs.length?`<div class="card"><h4>Riwayat penyesuaian</h4>${logs.map(l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qty>0?'plus':'minus')}</div><div class="tm"><b>${esc(l.item)}</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="del('StockLog','${l.id}')">${ic('trash')}</button></div>`).join('')}</div>`:''}`;
+    <div class="g2"><div class="card"><div class="mut">Jumlah item</div><div class="big">${items.length}</div></div><div class="card"><div class="mut">Stok menipis</div><div class="big ${low?'out':''}">${low}</div></div></div>`+
+    (items.map(x=>{
+      const s=stk(k,x),lo=isLow(k,x),lg=logsOf(k,x.id);
+      const sm=`<div class="ib ${lo?'out':'in'}">${ic('stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(s.init)} · ${k=='Products'?'Terjual':'Dibeli'} ${nf(s.mv)} · Koreksi ${s.adj>0?'+':''}${nf(s.adj)}</small></div><span class="bdg ${lo?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="event.preventDefault();event.stopPropagation();openAdj('${k}','${x.id}')">Atur</button>`;
+      const b=lg.length?`<div class="mut" style="margin-bottom:2px">5 riwayat penyesuaian terakhir</div>${lg.slice(0,5).map(logRow).join('')}<a href="#" class="more" onclick="openHist('${k}','${x.id}');return false">Lihat Selengkapnya (${lg.length}) →</a>`:'<div class="mut" style="padding:2px 0 8px">Belum ada riwayat penyesuaian.</div>';
+      return accI('sk'+x.id,sm,b);
+    }).join('')||`<div class="card mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`);
   },
   rep(){
     const t=txs(P.rep),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
@@ -245,7 +286,7 @@ function render(){
   const fab=view=='rep'?`<button class="fab" onclick="pdf()">${ic('dl')}<span>PDF</span></button>`:(view=='sales'||view=='buy')?`<button class="fab" onclick="openAdd('${view=='sales'?'Sales':'Purchases'}')">${ic('plus')}</button>`:'';
   $('#app').innerHTML=`<div class="content"><header><div class="logo h"><i>M</i>MyPOS</div><button class="me" onclick="if(confirm('Keluar dari akun?'))logout()"><b>${esc(user[0])}</b>Keluar</button></header><main><h1><span class="ib">${ic(view)}</span>${T[view]}</h1>${V[view]()}</main></div>${fab}<nav><div class="brand"><div class="logo"><i>M</i>MyPOS</div></div>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg><span>${T[k]}</span></button>`).join('')}</nav>`;
 }
-function go(v){view=v;render();scrollTo(0,0)}
+function go(v){if(v!=view){view=v;history.pushState({v},'')}render();scrollTo(0,0)}
 
 // ---------- autentikasi ----------
 function authUI(){
@@ -336,6 +377,15 @@ function openAdj(k,id){
   <label>Jumlah</label><input id="j_q" type="number" inputmode="decimal" min="0" step="any" value="1">
   <label>Catatan (opsional)</label><input id="j_n"><button class="btn" onclick="saveAdj('${k}','${id}')">Simpan</button>`);
 }
+function openHist(k,id){
+  HK=[k,id];const it=D[k].find(x=>x.id==id),lg=logsOf(k,id);
+  modal(`<h3>Riwayat Penyesuaian</h3><p class="mut" style="margin-top:0">${esc(it.name)} · stok saat ini <b>${nf(stk(k,it).cur)}</b> · ${lg.length} catatan</p>${lg.map(logRow).join('')||'<div class="mut">Belum ada riwayat.</div>'}`);
+}
+async function delLog(id){
+  if(!confirm('Hapus riwayat penyesuaian ini? Stok akan menyesuaikan kembali.'))return;
+  const h=HK;
+  try{await api('del',{t:'StockLog',id});D.StockLog=D.StockLog.filter(x=>x.id!=id);render();if(h&&modalOpen())openHist(...h)}catch(e){toast(e.message)}
+}
 async function saveAdj(k,id){
   const it=D[k].find(x=>x.id==id),q=+$('#j_q').value;
   if(!(q>0))return toast('Jumlah wajib diisi');
@@ -356,6 +406,27 @@ function pdf(){
   d.save(`mypos_laporan_${a}_${b}.pdf`);
 }
 
+// ---------- tombol Kembali (navigation bar HP) & Enter keyboard ----------
+history.replaceState({v:view},'');
+addEventListener('popstate',e=>{
+  if(modalOpen())return hideM();
+  const v=e.state&&e.state.v;if(v&&v!=view){view=v;render()}
+});
+const scope=t=>t.closest('#mb,.auth,.acc .ab')||document;
+const fields=sc=>[...sc.querySelectorAll('input,select')].filter(x=>!x.disabled&&x.offsetParent);
+document.addEventListener('focusin',e=>{
+  const t=e.target;if(!t.matches||!t.matches('input,select'))return;
+  const sc=scope(t);if(sc===document)return;
+  const f=fields(sc);t.enterKeyHint=f.indexOf(t)<f.length-1?'next':'go';
+});
+document.addEventListener('keydown',e=>{
+  if(e.key=='Escape'&&modalOpen())return closeM();
+  if(e.key!='Enter'||!e.target.matches||!e.target.matches('input'))return;
+  const sc=scope(e.target);if(sc===document)return;
+  e.preventDefault();
+  const f=fields(sc),i=f.indexOf(e.target);
+  if(i>=0&&i<f.length-1)f[i+1].focus();else{const b=sc.querySelector('.btn');if(b)b.click()}
+});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();if(tok)sync();
 </script></body></html>
