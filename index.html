@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<title>Catatan Keuangan</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#12201d;--mut:#6b7a76;--pri:#0f766e;--in:#15803d;--out:#b91c1c;--bd:#e2e8e6}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1514;--card:#17211f;--tx:#e8f0ee;--mut:#8fa09b;--pri:#2dd4bf;--in:#4ade80;--out:#f87171;--bd:#26332f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--pri);color:#fff}
+header b{font-size:18px}
+.ghost{background:none;border:0;color:inherit;font-size:12px;opacity:.9}
+main{padding:12px 12px calc(150px + env(safe-area-inset-bottom));max-width:640px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.big{font-size:26px;font-weight:700}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.mut{color:var(--mut);font-size:12px}
+.in{color:var(--in)}.out{color:var(--out)}
+h4{margin:0 0 8px}
+.tx{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--bd)}
+.tx:first-of-type{border-top:0}
+.tx small{display:block;color:var(--mut)}
+.tx span{white-space:nowrap;font-weight:600}
+.x{background:none;border:0;color:var(--out);font-size:18px;padding:4px 8px}
+input,select{width:100%;padding:11px;margin:4px 0 10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+label{font-size:12px;color:var(--mut)}
+.btn{width:100%;padding:13px;border:0;border-radius:12px;background:var(--pri);color:#fff;font:600 15px system-ui}
+.btn.s{width:auto;padding:10px 16px}
+.fab{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:6;min-width:56px;height:56px;padding:0 18px;border:0;border-radius:28px;background:var(--pri);color:#fff;font:700 20px system-ui;box-shadow:0 4px 14px #0004}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;padding:8px 0;color:var(--mut);font-size:11px}
+nav button i{display:block;font-style:normal;font-size:20px}
+nav .on{color:var(--pri);font-weight:700}
+#md{position:fixed;inset:0;z-index:20;background:#0007;display:none;align-items:flex-end}
+#md>div{background:var(--card);width:100%;max-width:640px;margin:auto;max-height:90%;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.tot{font-weight:700;margin-bottom:10px}
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;z-index:30;display:none;max-width:90%}
+.auth{max-width:380px;margin:12vh auto;padding:0 16px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl td,.tbl th{padding:6px 4px;border-top:1px solid var(--bd);text-align:left}
+.tbl .r{text-align:right}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:9px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
+.tabs .on{background:var(--pri);color:#fff;border-color:var(--pri)}
+</style></head>
+<body>
+<div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
+<script>
+const API='PASTE_URL_WEB_APP_DI_SINI'; // <- URL deployment Apps Script (berakhiran /exec)
+const $=s=>document.querySelector(s);
+const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const T={dash:'Dashboard',sales:'Penjualan',buy:'Pembelian',rep:'Laporan',set:'Setting'};
+const IC={dash:'📊',sales:'💰',buy:'🛒',rep:'📄',set:'⚙️'};
+let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets';
+let D={Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[]};
+const P={dash:{m:'this'},sales:{m:'this'},buy:{m:'this'},rep:{m:'this'}};
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+
+async function api(a,o={}){
+  if(API.startsWith('PASTE'))throw new Error('API belum diisi di index.html');
+  const r=await fetch(API,{method:'POST',body:JSON.stringify({a,token:tok,...o})});
+  const j=await r.json();
+  if(!j.ok){if(/sesi/i.test(j.error))logout();throw new Error(j.error)}
+  return j;
+}
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800)}
+function modal(h){$('#mb').innerHTML=h;$('#md').style.display='flex'}
+function closeM(){$('#md').style.display='none'}
+
+// ---------- periode ----------
+function rng(p){
+  const t=today(),pad=n=>String(n).padStart(2,'0');
+  if(p.m=='range')return[p.from||'0000-01-01',p.to||'9999-12-31'];
+  const m=(p.m=='month'&&p.month)||t.slice(0,7);
+  return[m+'-01',m+'-'+pad(new Date(m.slice(0,4),m.slice(5),0).getDate())];
+}
+const inR=(x,p)=>{const[a,b]=rng(p);return x.date>=a&&x.date<=b};
+function periodUI(k){
+  const p=P[k],o=(v,l)=>`<option value="${v}" ${p.m==v?'selected':''}>${l}</option>`;
+  return `<div class="card"><select style="margin-top:0" onchange="setP('${k}','m',this.value)">${o('this','Bulan ini')}${o('month','Pilih bulan')}${o('range','Pilih rentang tanggal')}</select>`+
+  (p.m=='month'?`<input type="month" value="${p.month||today().slice(0,7)}" onchange="setP('${k}','month',this.value)">`:'')+
+  (p.m=='range'?`<div class="row"><input type="date" value="${p.from||''}" onchange="setP('${k}','from',this.value)"><input type="date" value="${p.to||''}" onchange="setP('${k}','to',this.value)"></div>`:'')+
+  `</div>`;
+}
+function setP(k,f,v){P[k][f]=v;if(f=='m'&&v=='month'&&!P[k].month)P[k].month=today().slice(0,7);render()}
+
+// ---------- data ----------
+const sum=a=>a.reduce((x,s)=>x+ +s.total,0);
+const wname=id=>(D.Wallets.find(w=>w.id==id)||{name:'(terhapus)'}).name;
+const bal=w=>(+w.initial||0)+sum(D.Sales.filter(s=>s.walletId==w.id))-sum(D.Purchases.filter(s=>s.walletId==w.id));
+function txs(p){
+  const all=[...D.Sales.map(s=>({...s,k:'Penjualan',in:1})),...D.Purchases.map(s=>({...s,k:'Pembelian',in:0}))];
+  return(p?all.filter(x=>inR(x,p)):all).sort((a,b)=>b.date.localeCompare(a.date));
+}
+const txRow=(x,del)=>`<div class="tx"><div><b>${esc(x.item)}</b><small>${x.date} · ${esc(wname(x.walletId))} · ${x.qty}×${rp(x.price)}${x.note?' · '+esc(x.note):''}</small></div><span class="${x.in?'in':'out'}">${x.in?'+':'−'}${rp(x.total)}</span>${del?`<button class="x" onclick="del('${del}','${x.id}')">×</button>`:''}</div>`;
+
+// ---------- view ----------
+const V={
+  dash(){
+    const p=P.dash,i=sum(D.Sales.filter(x=>inR(x,p))),o=sum(D.Purchases.filter(x=>inR(x,p)));
+    const tot=D.Wallets.reduce((a,w)=>a+bal(w),0),last=txs().slice(0,10);
+    return `<div class="card"><div class="mut">Total Saldo</div><div class="big">${rp(tot)}</div></div>`+periodUI('dash')+
+    `<div class="row"><div class="card"><div class="mut">Pemasukan</div><b class="in">${rp(i)}</b></div><div class="card"><div class="mut">Pengeluaran</div><b class="out">${rp(o)}</b></div></div>
+    <div class="card"><div class="mut">Arus kas periode</div><b class="${i-o<0?'out':'in'}">${rp(i-o)}</b></div>
+    <div class="card"><h4>Dompet & Rekening</h4>${D.Wallets.map(w=>`<div class="tx"><div>${esc(w.name)}<small>${esc(w.type)}</small></div><span>${rp(bal(w))}</span></div>`).join('')||'<div class="mut">Belum ada. Tambahkan di Setting.</div>'}</div>
+    <div class="card"><h4>10 Transaksi Terakhir</h4>${last.map(x=>txRow(x)).join('')||'<div class="mut">Belum ada transaksi.</div>'}</div>`;
+  },
+  sales:()=>list('Sales'),
+  buy:()=>list('Purchases'),
+  rep(){
+    const t=txs(P.rep),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
+    return periodUI('rep')+`<div class="row"><div class="card"><div class="mut">Penjualan</div><b class="in">${rp(i)}</b></div><div class="card"><div class="mut">Pembelian</div><b class="out">${rp(o)}</b></div></div>
+    <div class="card"><div class="mut">Selisih saldo</div><div class="big ${i-o<0?'out':'in'}">${rp(i-o)}</div></div>
+    <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Tgl</th><th>Keterangan</th><th class="r">Masuk</th><th class="r">Keluar</th></tr>
+    ${t.map(x=>`<tr><td>${x.date.slice(5)}</td><td>${esc(x.item)}<br><span class="mut">${x.k} · ${x.qty}×${rp(x.price)}</span></td><td class="r in">${x.in?rp(x.total):''}</td><td class="r out">${x.in?'':rp(x.total)}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">Tidak ada transaksi.</td></tr>'}
+    <tr><th colspan=2>Total</th><th class="r">${rp(i)}</th><th class="r">${rp(o)}</th></tr></table></div>`;
+  },
+  set(){
+    const tabs=[['Wallets','Dompet/Rek.'],['Products','Produk'],['Materials','Bahan Baku']];
+    const items=D[stab];
+    let f=`<label>Nama</label><input id="s_n">`;
+    if(stab=='Wallets')f+=`<label>Jenis</label><select id="s_t"><option>Dompet</option><option>Rekening</option></select><label>Saldo awal</label><input id="s_p" type="number" inputmode="decimal" value="0">`;
+    else f+=`<label>Harga satuan</label><input id="s_p" type="number" inputmode="decimal" value="0">`;
+    return `<div class="tabs">${tabs.map(([k,l])=>`<button class="${k==stab?'on':''}" onclick="stab='${k}';render()">${l}</button>`).join('')}</div>
+    <div class="card"><h4>Tambah</h4>${f}<button class="btn" onclick="addSet()">Simpan</button></div>
+    <div class="card">${items.map(x=>`<div class="tx"><div>${esc(x.name)}<small>${stab=='Wallets'?esc(x.type)+' · saldo awal '+rp(x.initial):rp(x.price)}</small></div><button class="x" onclick="del('${stab}','${x.id}')">×</button></div>`).join('')||'<div class="mut">Belum ada data.</div>'}</div>`;
+  }
+};
+function list(t){
+  const k=t=='Sales'?'sales':'buy',p=P[k],r=txs(p).filter(x=>x.in==(t=='Sales'?1:0));
+  return periodUI(k)+`<div class="card"><div class="mut">Total ${t=='Sales'?'penjualan':'pembelian'}</div><div class="big ${t=='Sales'?'in':'out'}">${rp(sum(r))}</div></div>
+  <div class="card">${r.map(x=>txRow(x,t)).join('')||'<div class="mut">Tidak ada transaksi pada periode ini.</div>'}</div>`;
+}
+
+function render(){
+  if(!tok)return authUI();
+  const fab=view=='rep'?`<button class="fab" onclick="pdf()">⬇ PDF</button>`:(view=='sales'||view=='buy')?`<button class="fab" onclick="openAdd('${view=='sales'?'Sales':'Purchases'}')">＋</button>`:'';
+  $('#app').innerHTML=`<header><b>${T[view]}</b><button class="ghost" onclick="logout()">Keluar (${esc(user)})</button></header><main>${V[view]()}</main>${fab}<nav>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><i>${IC[k]}</i>${T[k]}</button>`).join('')}</nav>`;
+}
+function go(v){view=v;render();scrollTo(0,0)}
+
+// ---------- autentikasi ----------
+function authUI(){
+  const r=mode=='register';
+  $('#app').innerHTML=`<div class="auth"><div style="text-align:center;font-size:48px">💼</div><h2 style="text-align:center">Catatan Keuangan</h2>
+  <div class="card"><label>Username</label><input id="a_u" autocapitalize="none" autocomplete="username"><label>Password</label><input id="a_p" type="password" autocomplete="${r?'new':'current'}-password">
+  ${r?'<label>Kode pendaftaran</label><input id="a_c">':''}<button class="btn" onclick="auth()">${r?'Daftar':'Masuk'}</button>
+  <p style="text-align:center"><a href="#" onclick="mode='${r?'login':'register'}';render();return false" style="color:var(--pri)">${r?'Sudah punya akun? Masuk':'Belum punya akun? Daftar'}</a></p></div></div>`;
+}
+async function auth(){
+  try{
+    const j=await api(mode,{username:$('#a_u').value,password:$('#a_p').value,code:$('#a_c')?.value});
+    tok=j.token;user=j.user;localStorage.tk=tok;localStorage.us=user;render();sync();
+  }catch(e){toast(e.message)}
+}
+function logout(){tok=user=null;localStorage.removeItem('tk');localStorage.removeItem('us');D={Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[]};render()}
+async function sync(){try{D=(await api('sync')).data;render()}catch(e){toast(e.message)}}
+
+// ---------- transaksi ----------
+function openAdd(t){
+  const it=t=='Sales'?D.Products:D.Materials,nm=t=='Sales'?'Produk':'Bahan Baku';
+  if(!it.length||!D.Wallets.length)return toast(`Tambahkan ${nm} dan Dompet/Rekening di Setting dulu`);
+  modal(`<h3 style="margin-top:0">${t=='Sales'?'Tambah Penjualan':'Tambah Pembelian'}</h3>
+  <label>Tanggal</label><input id="f_d" type="date" value="${today()}">
+  <label>${nm}</label><select id="f_i" onchange="pick('${t}')">${it.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>
+  <div class="row"><div><label>Jumlah</label><input id="f_q" type="number" inputmode="decimal" value="1" min="0" step="any" oninput="calc()"></div><div><label>Harga satuan</label><input id="f_p" type="number" inputmode="decimal" oninput="calc()"></div></div>
+  <div class="tot" id="f_t"></div>
+  <label>${t=='Sales'?'Masuk ke':'Dibayar dari'}</label><select id="f_w">${D.Wallets.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+  <label>Catatan (opsional)</label><input id="f_n"><button class="btn" onclick="save('${t}')">Simpan</button>`);
+  pick(t);
+}
+function pick(t){const it=(t=='Sales'?D.Products:D.Materials).find(x=>x.id==$('#f_i').value);$('#f_p').value=it?it.price:0;calc()}
+function calc(){$('#f_t').textContent='Total: '+rp($('#f_q').value*$('#f_p').value)}
+async function save(t){
+  const it=(t=='Sales'?D.Products:D.Materials).find(x=>x.id==$('#f_i').value),q=+$('#f_q').value,p=+$('#f_p').value;
+  if(!$('#f_d').value||!(q>0))return toast('Tanggal dan jumlah wajib diisi');
+  try{
+    const row={date:$('#f_d').value,itemId:it.id,item:it.name,qty:q,price:p,total:q*p,walletId:$('#f_w').value,note:$('#f_n').value};
+    D[t].push((await api('add',{t,row})).row);closeM();render();toast('Tersimpan');
+  }catch(e){toast(e.message)}
+}
+async function del(t,id){
+  if(!confirm('Hapus data ini?'))return;
+  try{await api('del',{t,id});D[t]=D[t].filter(x=>x.id!=id);render()}catch(e){toast(e.message)}
+}
+async function addSet(){
+  const n=$('#s_n').value.trim();if(!n)return toast('Nama wajib diisi');
+  const v=+$('#s_p').value||0,row=stab=='Wallets'?{name:n,type:$('#s_t').value,initial:v}:{name:n,price:v};
+  try{D[stab].push((await api('add',{t:stab,row})).row);render();toast('Tersimpan')}catch(e){toast(e.message)}
+}
+
+// ---------- PDF ----------
+function pdf(){
+  if(!window.jspdf)return toast('Library PDF belum termuat, coba lagi');
+  const[a,b]=rng(P.rep),t=txs(P.rep).reverse(),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
+  const d=new window.jspdf.jsPDF();
+  d.setFontSize(14);d.text('Laporan Keuangan',14,15);d.setFontSize(10);d.text(`Periode: ${a} s/d ${b}`,14,22);
+  d.autoTable({startY:27,styles:{fontSize:8},headStyles:{fillColor:[15,118,110]},
+    head:[['Tanggal','Jenis','Keterangan','Qty','Masuk','Keluar']],
+    body:t.map(x=>[x.date,x.k,x.item,x.qty,x.in?rp(x.total):'',x.in?'':rp(x.total)]),
+    foot:[['','','Total','',rp(i),rp(o)],['','','Selisih saldo','',rp(i-o),'']],footStyles:{fillColor:[230,240,238],textColor:20}});
+  d.save(`laporan_${a}_${b}.pdf`);
+}
+
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();if(tok)sync();
+</script></body></html>
