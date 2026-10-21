@@ -93,6 +93,20 @@ nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;st
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl td,.tbl th{padding:9px 5px;border-top:1px solid var(--bd);text-align:left;vertical-align:top}
 .tbl .r{text-align:right;white-space:nowrap}
+h1{display:flex;align-items:center;gap:10px}
+.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ib{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--bg2);color:var(--pri);flex:none}
+.ib .i{width:20px;height:20px}
+.ib.in{background:#15803d1f;color:var(--in)}.ib.out{background:#dc26261f;color:var(--out)}
+h1 .ib{width:34px;height:34px;border-radius:11px;background:var(--g);color:#fff;box-shadow:0 6px 14px -6px #0f766e99}
+.st{display:flex;align-items:center;gap:12px}
+.hero .ib{background:#ffffff2e;color:#fff}
+.av .i{width:20px;height:20px}
+.x .i{width:18px;height:18px}
+.acc summary .i{color:var(--pri);width:20px;height:20px}
+.fab{display:flex;align-items:center;justify-content:center;gap:6px}
+.fab .i{width:26px;height:26px;stroke-width:2.2}
+.fab:has(.i + span){padding:0 22px}
 </style></head>
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
@@ -108,7 +122,8 @@ const fm=el=>{const d=el.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');el.valu
 const pv=id=>+String($('#'+id).value).replace(/\./g,'')||0;
 const mi=(id,v,extra='')=>`<input id="${id}" inputmode="numeric" autocomplete="off" value="${gm(v)}" oninput="fm(this);${extra}">`;
 const BL=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-const fd=s=>{const a=String(s).split('-');return a.length==3?(+a[2])+' '+BL[a[1]-1]+' '+a[0]:s};
+const nd=s=>{s=String(s??'');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const d=new Date(s);if(isNaN(d))return s.slice(0,10);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fd=s=>{const a=nd(s).split('-');return a.length==3&&BL[a[1]-1]?(+a[2])+' '+BL[a[1]-1]+' '+a[0]:s};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const T={dash:'Dashboard',sales:'Penjualan',buy:'Pembelian',stock:'Stok',rep:'Laporan',set:'Setting'};
@@ -118,6 +133,9 @@ buy:'<path d="M6 6h15l-1.5 9h-12zM6 6L5 3H2"/><circle cx="9" cy="20" r="1.3"/><c
 stock:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>',
 rep:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 13h6M9 17h4"/>',
 set:'<path d="M4 6h8M16 6h4M4 12h2M10 12h10M4 18h12"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'};
+const SV={plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"/>',trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',bank:'<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',flow:'<path d="M4 8h14l-3-3M20 16H6l3 3"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',alert:'<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>',tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',dl:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'};
+const ic=(n,c='i')=>`<svg class="${c}" viewBox="0 0 24 24">${SV[n]||IC[n]||''}</svg>`;
+const stat=(ico,cls,l,v)=>`<div class="card st"><div class="ib ${cls}">${ic(ico)}</div><div><div class="mut">${l}</div><b class="${cls}">${v}</b></div></div>`;
 const EMPTY=()=>({Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[],StockLog:[]});
 let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={};
 const P={dash:{m:'this'},sales:{m:'this'},buy:{m:'this'},rep:{m:'this'}};
@@ -174,7 +192,7 @@ function txs(p){
 }
 const code=x=>(x.in?'PJ':'PB')+'-'+x.date.replace(/-/g,'').slice(2)+'-'+String(x.id).slice(0,4).toUpperCase();
 const iname=x=>((x.in?D.Products:D.Materials).find(i=>i.id==x.itemId)||{}).name||x.item;
-const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${x.in?'↓':'↑'}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span></div><small>${esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small></div><span class="amt ${x.in?'in':'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del?`<button class="x" onclick="del('${del}','${x.id}')">×</button>`:''}</div>`;
+const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span></div><small>${esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small></div><span class="amt ${x.in?'in':'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
 
 // ---------- tampilan ----------
 const V={
@@ -182,12 +200,12 @@ const V={
     const p=P.dash,i=sum(D.Sales.filter(x=>inR(x,p))),o=sum(D.Purchases.filter(x=>inR(x,p)));
     const tot=D.Wallets.reduce((a,w)=>a+bal(w),0),last=txs().slice(0,10);
     const low=[...D.Products.filter(x=>isLow('Products',x)).map(x=>['Products',x]),...D.Materials.filter(x=>isLow('Materials',x)).map(x=>['Materials',x])];
-    return `<div class="card hero"><div class="mut">Total Saldo</div><div class="big">${rp(tot)}</div></div>`+periodUI('dash')+
-    `<div class="g2"><div class="card"><div class="mut">Pemasukan</div><b class="in">${rp(i)}</b></div><div class="card"><div class="mut">Pengeluaran</div><b class="out">${rp(o)}</b></div></div>
-    <div class="card"><div class="mut">Arus kas periode</div><div class="big ${i-o<0?'out':'in'}">${rp(i-o)}</div></div>
-    ${low.length?acc('low','⚠️ Stok menipis ('+low.length+')',low.map(([k,x])=>`<div class="tx"><div class="tm"><b>${esc(x.name)}</b><small>${NM[k]} · min ${nf(x.min)}</small></div><span class="bdg out">${nf(stk(k,x).cur)}</span></div>`).join(''),true):''}
-    <div class="dg">${acc('wallets','Dompet & Rekening',D.Wallets.map(w=>`<div class="tx"><div class="tm"><b>${esc(w.name)}</b><small>${esc(w.type)}</small></div><span class="amt">${rp(bal(w))}</span></div>`).join('')||'<div class="mut">Belum ada. Tambahkan di Setting.</div>',true)}
-    ${acc('last10','10 Transaksi Terakhir',last.map(x=>txRow(x)).join('')||'<div class="mut">Belum ada transaksi.</div>',true)}</div>`;
+    return `<div class="card hero st"><div class="ib">${ic('wallet')}</div><div><div class="mut">Total Saldo</div><div class="big">${rp(tot)}</div></div></div>`+periodUI('dash')+
+    `<div class="g2">${stat('down','in','Pemasukan',rp(i))}${stat('up','out','Pengeluaran',rp(o))}</div>
+    <div class="card st"><div class="ib ${i-o<0?'out':'in'}">${ic('flow')}</div><div><div class="mut">Arus kas periode</div><div class="big ${i-o<0?'out':'in'}">${rp(i-o)}</div></div></div>
+    ${low.length?acc('low',ic('alert')+' Stok menipis ('+low.length+')',low.map(([k,x])=>`<div class="tx"><div class="tm"><b>${esc(x.name)}</b><small>${NM[k]} · min ${nf(x.min)}</small></div><span class="bdg out">${nf(stk(k,x).cur)}</span></div>`).join(''),false):''}
+    <div class="dg">${acc('wallets',ic('wallet')+' Dompet & Rekening',D.Wallets.map(w=>`<div class="tx"><div class="ib">${ic(w.type=='Rekening'?'bank':'wallet')}</div><div class="tm"><b>${esc(w.name)}</b><small>${esc(w.type)}</small></div><span class="amt">${rp(bal(w))}</span></div>`).join('')||'<div class="mut">Belum ada. Tambahkan di Setting.</div>',false)}
+    ${acc('last10',ic('clock')+' 10 Transaksi Terakhir',last.map(x=>txRow(x)).join('')||'<div class="mut">Belum ada transaksi.</div>',false)}</div>`;
   },
   sales:()=>list('Sales'),
   buy:()=>list('Purchases'),
@@ -196,13 +214,13 @@ const V={
     const logs=D.StockLog.filter(l=>l.kind==k).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
     return `<div class="seg">${['Products','Materials'].map(t=>`<button class="${t==k?'on':''}" onclick="sk='${t}';render()">${NM[t]}</button>`).join('')}</div>
     <div class="g2"><div class="card"><div class="mut">Jumlah item</div><div class="big">${items.length}</div></div><div class="card"><div class="mut">Stok menipis</div><div class="big ${low?'out':''}">${low}</div></div></div>
-    <div class="card">${items.map(x=>{const s=stk(k,x);return `<div class="tx"><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(s.init)} · ${k=='Products'?'Terjual':'Dibeli'} ${nf(s.mv)} · Koreksi ${s.adj>0?'+':''}${nf(s.adj)}</small></div><span class="bdg ${isLow(k,x)?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="openAdj('${k}','${x.id}')">Atur</button></div>`}).join('')||`<div class="mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`}</div>
-    ${logs.length?`<div class="card"><h4>Riwayat penyesuaian</h4>${logs.map(l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${l.qty>0?'+':'-'}</div><div class="tm"><b>${esc(l.item)}</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="del('StockLog','${l.id}')">×</button></div>`).join('')}</div>`:''}`;
+    <div class="card">${items.map(x=>{const s=stk(k,x);return `<div class="tx"><div class="ib ${isLow(k,x)?'out':'in'}">${ic('stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(s.init)} · ${k=='Products'?'Terjual':'Dibeli'} ${nf(s.mv)} · Koreksi ${s.adj>0?'+':''}${nf(s.adj)}</small></div><span class="bdg ${isLow(k,x)?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="openAdj('${k}','${x.id}')">Atur</button></div>`}).join('')||`<div class="mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`}</div>
+    ${logs.length?`<div class="card"><h4>Riwayat penyesuaian</h4>${logs.map(l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qty>0?'plus':'minus')}</div><div class="tm"><b>${esc(l.item)}</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="del('StockLog','${l.id}')">${ic('trash')}</button></div>`).join('')}</div>`:''}`;
   },
   rep(){
     const t=txs(P.rep),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
-    return periodUI('rep')+`<div class="g2"><div class="card"><div class="mut">Penjualan</div><b class="in">${rp(i)}</b></div><div class="card"><div class="mut">Pembelian</div><b class="out">${rp(o)}</b></div></div>
-    <div class="card hero"><div class="mut">Selisih saldo</div><div class="big">${rp(i-o)}</div></div>
+    return periodUI('rep')+`<div class="g2">${stat('down','in','Penjualan',rp(i))}${stat('up','out','Pembelian',rp(o))}</div>
+    <div class="card hero st"><div class="ib">${ic('flow')}</div><div><div class="mut">Selisih saldo</div><div class="big">${rp(i-o)}</div></div></div>
     <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Tanggal / Kode</th><th>Keterangan</th><th class="r">Masuk</th><th class="r">Keluar</th></tr>
     ${t.map(x=>`<tr><td style="white-space:nowrap">${fd(x.date)}<br><span class="code">${code(x)}</span></td><td><b>${esc(iname(x))}</b><br><span class="mut">${x.k} · ${nf(x.qty)} × ${rp(x.price)}<br>${esc(wname(x.walletId))}</span></td><td class="r in">${x.in?rp(x.total):''}</td><td class="r out">${x.in?'':rp(x.total)}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">Tidak ada transaksi.</td></tr>'}
     <tr><th colspan=2>Total</th><th class="r">${rp(i)}</th><th class="r">${rp(o)}</th></tr></table></div>`;
@@ -213,19 +231,19 @@ const V={
     if(w)f+=`<label>Jenis</label><select id="s_t"><option>Dompet</option><option>Rekening</option></select><label>Saldo awal</label>${mi('s_p',0)}`;
     else f+=`<label>Harga satuan</label>${mi('s_p',0)}<div class="g2" style="margin:0"><div><label>Stok awal</label><input id="s_s" type="number" inputmode="decimal" value="0"></div><div><label>Stok minimum</label><input id="s_m" type="number" inputmode="decimal" value="0"></div></div>`;
     return `<div class="seg">${Object.keys(NM).map(k=>`<button class="${k==stab?'on':''}" onclick="stab='${k}';render()">${NM[k]}</button>`).join('')}</div>
-    ${acc('add'+stab,'＋ Tambah '+NM[stab],f+`<button class="btn" onclick="addSet()">Simpan</button>`,false)}
-    <div class="card"><h4>Daftar ${NM[stab]}</h4>${items.map(x=>`<div class="tx"><div class="tm"><b>${esc(x.name)}</b><small>${w?esc(x.type)+' · saldo awal '+rp(x.initial):rp(x.price)+' · stok awal '+nf(x.stock)+' · min '+nf(x.min)}</small></div><button class="x" onclick="openEdit('${stab}','${x.id}')" title="Edit">✎</button><button class="x" onclick="del('${stab}','${x.id}')">×</button></div>`).join('')||'<div class="mut">Belum ada data.</div>'}</div>`;
+    ${acc('add'+stab,ic('plus')+' Tambah '+NM[stab],f+`<button class="btn" onclick="addSet()">Simpan</button>`,false)}
+    <div class="card"><h4>Daftar ${NM[stab]}</h4>${items.map(x=>`<div class="tx"><div class="ib">${ic(w?(x.type=='Rekening'?'bank':'wallet'):stab=='Products'?'tag':'stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>${w?esc(x.type)+' · saldo awal '+rp(x.initial):rp(x.price)+' · stok awal '+nf(x.stock)+' · min '+nf(x.min)}</small></div><button class="x" onclick="openEdit('${stab}','${x.id}')" title="Edit">${ic('edit')}</button><button class="x" onclick="del('${stab}','${x.id}')">${ic('trash')}</button></div>`).join('')||'<div class="mut">Belum ada data.</div>'}</div>`;
   }
 };
 function list(t){
   const k=t=='Sales'?'sales':'buy',r=txs(P[k]).filter(x=>x.in==(t=='Sales'?1:0));
-  return periodUI(k)+`<div class="card hero"><div class="mut">Total ${t=='Sales'?'penjualan':'pembelian'}</div><div class="big">${rp(sum(r))}</div></div>
+  return periodUI(k)+`<div class="card hero st"><div class="ib">${ic(t=='Sales'?'down':'up')}</div><div><div class="mut">Total ${t=='Sales'?'penjualan':'pembelian'}</div><div class="big">${rp(sum(r))}</div></div></div>
   <div class="card">${r.map(x=>txRow(x,t)).join('')||'<div class="mut">Tidak ada transaksi pada periode ini.</div>'}</div>`;
 }
 function render(){
   if(!tok)return authUI();
-  const fab=view=='rep'?`<button class="fab" onclick="pdf()">⬇ PDF</button>`:(view=='sales'||view=='buy')?`<button class="fab" onclick="openAdd('${view=='sales'?'Sales':'Purchases'}')">＋</button>`:'';
-  $('#app').innerHTML=`<div class="content"><header><div class="logo h"><i>M</i>MyPOS</div><button class="me" onclick="if(confirm('Keluar dari akun?'))logout()"><b>${esc(user[0])}</b>Keluar</button></header><main><h1>${T[view]}</h1>${V[view]()}</main></div>${fab}<nav><div class="brand"><div class="logo"><i>M</i>MyPOS</div></div>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg><span>${T[k]}</span></button>`).join('')}</nav>`;
+  const fab=view=='rep'?`<button class="fab" onclick="pdf()">${ic('dl')}<span>PDF</span></button>`:(view=='sales'||view=='buy')?`<button class="fab" onclick="openAdd('${view=='sales'?'Sales':'Purchases'}')">${ic('plus')}</button>`:'';
+  $('#app').innerHTML=`<div class="content"><header><div class="logo h"><i>M</i>MyPOS</div><button class="me" onclick="if(confirm('Keluar dari akun?'))logout()"><b>${esc(user[0])}</b>Keluar</button></header><main><h1><span class="ib">${ic(view)}</span>${T[view]}</h1>${V[view]()}</main></div>${fab}<nav><div class="brand"><div class="logo"><i>M</i>MyPOS</div></div>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg><span>${T[k]}</span></button>`).join('')}</nav>`;
 }
 function go(v){view=v;render();scrollTo(0,0)}
 
@@ -244,7 +262,7 @@ async function auth(){
   }catch(e){toast(e.message)}
 }
 function logout(){tok=user=null;localStorage.removeItem('tk');localStorage.removeItem('us');D=EMPTY();render()}
-async function sync(){try{D={...EMPTY(),...(await api('sync')).data};render()}catch(e){toast(e.message)}}
+async function sync(){try{const j=(await api('sync')).data;['Sales','Purchases','StockLog'].forEach(k=>(j[k]||[]).forEach(x=>x.date=nd(x.date)));D={...EMPTY(),...j};render()}catch(e){toast(e.message)}}
 
 // ---------- transaksi ----------
 function openAdd(t){
