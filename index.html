@@ -52,7 +52,7 @@ nav .on{color:var(--pri);font-weight:700}
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
 <script>
-const API='PASTE_URL_WEB_APP_DI_SINI'; // <- URL deployment Apps Script (berakhiran /exec)
+const API='https://script.google.com/macros/s/AKfycbyBTJy0MxaKClRbe5s16WpdvlcCcvxJ00fl6JyglyjJVGlbqH2BlkzQtoH7oXWb43H-9g/exec'; // <- URL deployment Apps Script (berakhiran /exec)
 const $=s=>document.querySelector(s);
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
