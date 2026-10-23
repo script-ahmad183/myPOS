@@ -163,6 +163,17 @@ textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px #14b8a62e}
 .chip.ok{background:#15803d1f;color:var(--in)}.chip.due{background:#d977061f;color:#d97706}
 .amt.dueamt,.dueamt{color:#d97706}
 .ib.due{background:#d977061f;color:#d97706}
+.dr{border-top:1px solid var(--bd)}
+.dr:first-child{border-top:0}
+.dr summary{display:flex;align-items:center;gap:12px;padding:11px 0;cursor:pointer;list-style:none}
+.dr summary::-webkit-details-marker{display:none}
+.dr summary:after{content:"";flex:none;width:7px;height:7px;margin-left:2px;border-right:2px solid var(--mut);border-bottom:2px solid var(--mut);transform:rotate(45deg);transition:.2s}
+.dr[open] summary:after{transform:rotate(-135deg)}
+.dt{background:var(--bg);border-radius:12px;padding:4px 12px 8px;margin:0 0 12px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--bd);font-size:13px}
+.kv span:first-child{color:var(--mut);flex:none}
+.kv span:last-child{text-align:right;font-weight:600;min-width:0}
+.dt .acts{margin:10px 0 0}
 </style><style id="pg"></style></head>
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
@@ -275,7 +286,15 @@ const repTx=p=>[
 ].sort((a,b)=>b.date.localeCompare(a.date));
 const code=x=>(x.in?'PJ':'PB')+'-'+(x.sd||x.date).replace(/-/g,'').slice(2)+'-'+String(x.id).slice(0,4).toUpperCase();
 const iname=x=>((x.in?D.Products:D.Materials).find(i=>i.id==x.itemId)||{}).name||x.item;
-const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span>${x.in?`<span class="chip ${stT(x)=='Lunas'?'ok':'due'}">${stT(x)}</span>`:''}</div><small>${x.in&&isCr(x)?(paidAmt(x)>0?'Dibayar '+rp(paidAmt(x))+' · Sisa '+rp(rest(x)):'Belum dibayar · Sisa '+rp(rest(x))):esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small>${del=='Sales'&&isCr(x)?`<button class="btn sm" style="margin-top:6px" onclick="openPay('${x.id}')">${rest(x)>0?'Terima Pembayaran':'Lihat Pembayaran'}</button>`:''}</div><span class="amt ${x.in?(stT(x)=='Lunas'?'in':'dueamt'):'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del=='Sales'?`<button class="x" title="Cetak invoice" onclick="openInvoice('${x.id}')">${ic('print')}</button>`:''}${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
+const txRow=(x,del)=>{
+  const cr=x.in&&isCr(x),pd=cr?paidAmt(x):0,id='t'+x.id;
+  const chip=x.in?`<span class="chip ${stT(x)=='Lunas'?'ok':'due'}">${stT(x)}</span>`:'';
+  const kv=(k,v)=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+  const pay=cr?(pd>0?'Dibayar '+rp(pd)+' · Sisa '+rp(rest(x)):'Belum dibayar · Sisa '+rp(rest(x))):esc(wname(x.walletId));
+  const acts=del?`<div class="acts">${del=='Sales'&&cr?`<button class="btn sm" onclick="openPay('${x.id}')">${rest(x)>0?'Terima Pembayaran':'Lihat Pembayaran'}</button>`:''}${del=='Sales'?`<button class="btn sm alt" onclick="openInvoice('${x.id}')">${ic('print')} Invoice</button>`:''}<button class="btn sm alt dng" onclick="del('${del}','${x.id}')">${ic('trash')} Hapus</button></div>`:'';
+  const body=`<div class="dt">${kv('Kode',`<span class="code">${code(x)}</span>`)}${kv('Tanggal',fd(x.date))}${kv(x.in?(cr?'Pembayaran':'Masuk ke'):'Dibayar dari',pay)}${kv('Rincian',nf(x.qty)+' × '+rp(x.price))}${x.note?kv('Catatan',esc(x.note)):''}${acts}</div>`;
+  return `<details class="dr" ${OPEN[id]?'open':''} ontoggle="OPEN['${id}']=this.open"><summary><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><small>${fd(x.date)}${chip?' · ':''}${chip}</small></div><span class="amt ${x.in?(stT(x)=='Lunas'?'in':'dueamt'):'out'}">${x.in?'+':'-'}${rp(x.total)}</span></summary>${body}</details>`;
+};
 
 // ---------- tampilan ----------
 const V={
