@@ -159,6 +159,10 @@ textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px #14b8a62e}
 }
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
 .btn.alt.dng{color:var(--out)}
+.chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px}
+.chip.ok{background:#15803d1f;color:var(--in)}.chip.due{background:#d977061f;color:#d97706}
+.amt.dueamt,.dueamt{color:#d97706}
+.ib.due{background:#d977061f;color:#d97706}
 </style><style id="pg"></style></head>
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
@@ -197,7 +201,7 @@ const logsOf=(k,id)=>[...D.StockLog].reverse().filter(l=>l.kind==k&&l.itemId==id
 const logRow=l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qty>0?'plus':'minus')}</div><div class="tm"><b>${l.qty>0?'Tambah':'Kurangi'} stok</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="delLog('${l.id}')">${ic('trash')}</button></div>`;
 const accI=(id,sm,b)=>`<details class="card acc" ${OPEN[id]?'open':''} ontoggle="OPEN['${id}']=this.open"><summary class="sm">${sm}</summary><div class="ab">${b}</div></details>`;
 const EMPTY=()=>({Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[],StockLog:[],Store:[],BalanceLog:[]});
-let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1',LG=null,PAPER=localStorage.paper||'A4',INV=null,HW=null;
+let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1',LG=null,PAPER=localStorage.paper||'A4',INV=null,HW=null,SF='all';
 const P={dash:{m:'this'},sales:{m:'week'},buy:{m:'week'},rep:{m:'week'}};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const NM={Products:'Produk',Materials:'Bahan Baku',Wallets:'Dompet/Rek.',Store:'Toko'};
@@ -242,7 +246,7 @@ function setP(k,f,v){
 // ---------- data & stok ----------
 const sum=a=>a.reduce((x,s)=>x+ +s.total,0);
 const wname=id=>(D.Wallets.find(w=>w.id==id)||{name:'(terhapus)'}).name;
-const bal=w=>(+w.initial||0)+sum(D.Sales.filter(s=>s.walletId==w.id))-sum(D.Purchases.filter(s=>s.walletId==w.id))+D.BalanceLog.filter(l=>l.walletId==w.id).reduce((a,l)=>a+ +l.amount,0);
+const bal=w=>(+w.initial||0)+sum(D.Sales.filter(s=>isPaid(s)&&s.walletId==w.id))-sum(D.Purchases.filter(s=>s.walletId==w.id))+D.BalanceLog.filter(l=>l.walletId==w.id).reduce((a,l)=>a+ +l.amount,0);
 function stk(k,it){
   const adj=D.StockLog.filter(l=>l.kind==k&&l.itemId==it.id).reduce((a,l)=>a+ +l.qty,0);
   const mv=(k=='Products'?D.Sales:D.Purchases).filter(x=>x.itemId==it.id).reduce((a,x)=>a+ +x.qty,0);
@@ -254,9 +258,16 @@ function txs(p){
   const all=[...D.Sales.map(s=>({...s,k:'Penjualan',in:1})),...D.Purchases.map(s=>({...s,k:'Pembelian',in:0}))];
   return(p?all.filter(x=>inR(x,p)):all).sort((a,b)=>b.date.localeCompare(a.date));
 }
-const code=x=>(x.in?'PJ':'PB')+'-'+x.date.replace(/-/g,'').slice(2)+'-'+String(x.id).slice(0,4).toUpperCase();
+const isPaid=s=>s.status!='Piutang';
+const cashSales=()=>D.Sales.filter(isPaid).map(s=>({...s,sd:s.date,date:s.paidDate||s.date}));
+const repTx=p=>[
+  ...cashSales().filter(x=>inR(x,p)).map(s=>({...s,k:s.sd<s.date?'Pelunasan Piutang':'Penjualan',in:1})),
+  ...D.Sales.filter(s=>!isPaid(s)&&inR(s,p)).map(s=>({...s,k:'Piutang',in:1,due:1})),
+  ...D.Purchases.filter(s=>inR(s,p)).map(s=>({...s,k:'Pembelian',in:0}))
+].sort((a,b)=>b.date.localeCompare(a.date));
+const code=x=>(x.in?'PJ':'PB')+'-'+(x.sd||x.date).replace(/-/g,'').slice(2)+'-'+String(x.id).slice(0,4).toUpperCase();
 const iname=x=>((x.in?D.Products:D.Materials).find(i=>i.id==x.itemId)||{}).name||x.item;
-const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span></div><small>${esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small></div><span class="amt ${x.in?'in':'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del=='Sales'?`<button class="x" title="Cetak invoice" onclick="openInvoice('${x.id}')">${ic('print')}</button>`:''}${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
+const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span>${x.in?`<span class="chip ${isPaid(x)?'ok':'due'}">${isPaid(x)?'Lunas':'Piutang'}</span>`:''}</div><small>${isPaid(x)?esc(wname(x.walletId)):'Belum dibayar'} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small>${del=='Sales'&&!isPaid(x)?`<button class="btn sm" style="margin-top:6px" onclick="openPay('${x.id}')">Terima Pembayaran</button>`:''}</div><span class="amt ${x.in?(isPaid(x)?'in':'dueamt'):'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del=='Sales'?`<button class="x" title="Cetak invoice" onclick="openInvoice('${x.id}')">${ic('print')}</button>`:''}${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
 
 // ---------- tampilan ----------
 const V={
@@ -264,7 +275,7 @@ const V={
     const p=P.dash;
     if(dw!='all'&&!D.Wallets.some(w=>w.id==dw))dw='all';
     const sel=dw=='all'?null:D.Wallets.find(w=>w.id==dw),f=x=>!sel||x.walletId==sel.id;
-    const i=sum(D.Sales.filter(x=>inR(x,p)&&f(x))),o=sum(D.Purchases.filter(x=>inR(x,p)&&f(x)));
+    const i=sum(cashSales().filter(x=>inR(x,p)&&f(x))),o=sum(D.Purchases.filter(x=>inR(x,p)&&f(x)));
     const all=D.Wallets.reduce((a,w)=>a+bal(w),0),tot=sel?bal(sel):all,last=txs().filter(f).slice(0,10);
     return periodUI('dash')+`<div class="card hero db">
       <div class="st" style="justify-content:space-between"><div class="st" style="gap:8px">${ic('wallet')}<span class="mut">${sel?'Saldo '+esc(sel.name):'Total Keseluruhan Saldo'}</span></div><button class="eye" onclick="toggleHid()">${ic(HID?'eyeoff':'eye')}</button></div>
@@ -290,11 +301,12 @@ const V={
     }).join('')||`<div class="card mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`);
   },
   rep(){
-    const t=txs(P.rep),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
-    return periodUI('rep')+`<div class="g2">${stat('down','in','Penjualan',rp(i))}${stat('up','out','Pembelian',rp(o))}</div>
+    const t=repTx(P.rep),i=sum(t.filter(x=>x.in&&!x.due)),o=sum(t.filter(x=>!x.in)),pi=sum(t.filter(x=>x.due));
+    return periodUI('rep')+`<div class="g2">${stat('down','in','Penjualan (lunas)',rp(i))}${stat('up','out','Pembelian',rp(o))}</div>
+    <div class="card st"><div class="ib due">${ic('clock')}</div><div><div class="mut">Piutang belum dibayar</div><b class="dueamt">${rp(pi)}</b></div></div>
     <div class="card hero st"><div class="ib">${ic('flow')}</div><div><div class="mut">Selisih saldo</div><div class="big">${rp(i-o)}</div></div></div>
     <div class="card" style="overflow:auto"><table class="tbl"><tr><th>Tanggal / Kode</th><th>Keterangan</th><th class="r">Masuk</th><th class="r">Keluar</th></tr>
-    ${t.map(x=>`<tr><td style="white-space:nowrap">${fd(x.date)}<br><span class="code">${code(x)}</span></td><td><b>${esc(iname(x))}</b><br><span class="mut">${x.k} · ${nf(x.qty)} × ${rp(x.price)}<br>${esc(wname(x.walletId))}</span></td><td class="r in">${x.in?rp(x.total):''}</td><td class="r out">${x.in?'':rp(x.total)}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">Tidak ada transaksi.</td></tr>'}
+    ${t.map(x=>`<tr><td style="white-space:nowrap">${fd(x.date)}<br><span class="code">${code(x)}</span></td><td><b>${esc(iname(x))}</b><br><span class="mut">${x.k} · ${nf(x.qty)} × ${rp(x.price)}<br>${x.due?'<span class="chip due">Belum dibayar</span>':esc(wname(x.walletId))}</span></td><td class="r in">${x.in&&!x.due?rp(x.total):''}</td><td class="r out">${x.in?'':rp(x.total)}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">Tidak ada transaksi.</td></tr>'}
     <tr><th colspan=2>Total</th><th class="r">${rp(i)}</th><th class="r">${rp(o)}</th></tr></table></div>`;
   },
   set(){
@@ -309,8 +321,11 @@ const V={
   }
 };
 function list(t){
-  const k=t=='Sales'?'sales':'buy',r=txs(P[k]).filter(x=>x.in==(t=='Sales'?1:0));
-  return periodUI(k)+`<div class="card hero st"><div class="ib">${ic(t=='Sales'?'down':'up')}</div><div><div class="mut">Total ${t=='Sales'?'penjualan':'pembelian'}</div><div class="big">${rp(sum(r))}</div></div></div>
+  const S=t=='Sales',k=S?'sales':'buy',all=txs(P[k]).filter(x=>x.in==(S?1:0));
+  const r=S&&SF!='all'?all.filter(x=>SF=='Lunas'?isPaid(x):!isPaid(x)):all;
+  const lu=sum(all.filter(isPaid)),pi=sum(all)-lu;
+  return periodUI(k)+(S?`<div class="seg">${[['all','Semua'],['Lunas','Lunas'],['Piutang','Belum Bayar']].map(([v,l])=>`<button class="${SF==v?'on':''}" onclick="SF='${v}';render()">${l}</button>`).join('')}</div>`:'')+
+  `<div class="card hero st"><div class="ib">${ic(S?'down':'up')}</div><div><div class="mut">Total ${S?'penjualan':'pembelian'}</div><div class="big">${rp(sum(all))}</div>${S?`<div class="mut" style="margin-top:2px">Lunas ${rp(lu)} · Piutang ${rp(pi)}</div>`:''}</div></div>
   <div class="card">${r.map(x=>txRow(x,t)).join('')||'<div class="mut">Tidak ada transaksi pada periode ini.</div>'}</div>`;
 }
 function render(){
@@ -335,7 +350,7 @@ async function auth(){
   }catch(e){toast(e.message)}
 }
 function logout(){tok=user=null;localStorage.removeItem('tk');localStorage.removeItem('us');D=EMPTY();render()}
-async function sync(){try{const j=(await api('sync')).data;['Sales','Purchases','StockLog','BalanceLog'].forEach(k=>(j[k]||[]).forEach(x=>x.date=nd(x.date)));D={...EMPTY(),...j};render()}catch(e){toast(e.message)}}
+async function sync(){try{const j=(await api('sync')).data;['Sales','Purchases','StockLog','BalanceLog'].forEach(k=>(j[k]||[]).forEach(x=>x.date=nd(x.date)));(j.Sales||[]).forEach(x=>x.paidDate=x.paidDate?nd(x.paidDate):'');D={...EMPTY(),...j};render()}catch(e){toast(e.message)}}
 
 // ---------- transaksi ----------
 function openAdd(t){
@@ -347,9 +362,28 @@ function openAdd(t){
   <label>${nm}</label><select id="f_i" onchange="pick()">${it.map(x=>{const out=t=='Sales'&&stk(k,x).cur<=0;return `<option value="${x.id}" ${out?'disabled':''}>${esc(x.name)}${out?' (stok habis)':''}</option>`}).join('')}</select><div class="info" id="f_s"></div>
   <div class="g2" style="margin:0"><div><label>Jumlah</label><input id="f_q" type="number" inputmode="decimal" value="1" min="0" step="any" oninput="calc()"></div><div><label>Harga satuan</label>${mi('f_p',0,'calc()')}</div></div>
   <div class="tot" id="f_t"></div>
-  <label>${t=='Sales'?'Masuk ke':'Dibayar dari'}</label><select id="f_w" onchange="calc()">${D.Wallets.map(w=>`<option value="${w.id}">${esc(w.name)}${t=='Purchases'?' · '+rp(bal(w)):''}</option>`).join('')}</select><div class="info" id="f_b"></div>
+  ${t=='Sales'?`<label>Status pembayaran</label><select id="f_st" onchange="stChg()"><option value="Lunas">Lunas</option><option value="Piutang">Belum bayar (piutang)</option></select>`:''}<div id="f_wb"><label>${t=='Sales'?'Masuk ke':'Dibayar dari'}</label><select id="f_w" onchange="calc()">${D.Wallets.map(w=>`<option value="${w.id}">${esc(w.name)}${t=='Purchases'?' · '+rp(bal(w)):''}</option>`).join('')}</select><div class="info" id="f_b"></div></div>
   <label>Catatan (opsional)</label><input id="f_n"><button class="btn" onclick="save()">Simpan</button>`);
   pick();
+}
+function stChg(){$('#f_wb').style.display=$('#f_st').value=='Piutang'?'none':''}
+function openPay(id){
+  const s=D.Sales.find(x=>x.id==id);if(!s)return;
+  if(!D.Wallets.length)return toast('Tambahkan Dompet/Rekening di Setting dulu');
+  modal(`<h3>Terima Pembayaran</h3><p class="mut" style="margin-top:0">${code({...s,in:1})} · ${esc(iname({...s,in:1}))}</p><div class="tot">${rp(s.total)}</div>
+  <label>Masuk ke</label><select id="p_w">${D.Wallets.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')}</select>
+  <label>Tanggal pembayaran</label><input id="p_d" type="date" value="${today()}" min="${s.date}">
+  <button class="btn" onclick="savePay('${id}')">Tandai Lunas</button>`);
+}
+async function savePay(id){
+  const s=D.Sales.find(x=>x.id==id),d=$('#p_d').value,w=$('#p_w').value;
+  if(!d)return toast('Tanggal pembayaran wajib diisi');
+  if(d<s.date)return toast('Tanggal pembayaran tidak boleh sebelum tanggal penjualan');
+  try{
+    await api('upd',{t:'Sales',id,row:{status:'Lunas',paidDate:d,walletId:w}});
+    D.Sales=D.Sales.map(x=>x.id==id?{...x,status:'Lunas',paidDate:d,walletId:w}:x);
+    closeM();render();toast('Pembayaran diterima, saldo diperbarui');
+  }catch(e){toast(e.message)}
 }
 function pick(){
   const k=FT=='Sales'?'Products':'Materials',it=D[k].find(x=>x.id==$('#f_i').value);
@@ -372,7 +406,9 @@ async function save(){
     if(tot>b)return toast(`Saldo ${w.name} tidak mencukupi (tersedia ${rp(b)})`);
   }
   try{
-    const row={date:$('#f_d').value,itemId:it.id,item:it.name,qty:q,price:p,total:tot,walletId:$('#f_w').value,note:$('#f_n').value};
+    const stt=t=='Sales'?$('#f_st').value:'';
+    const row={date:$('#f_d').value,itemId:it.id,item:it.name,qty:q,price:p,total:tot,walletId:stt=='Piutang'?'':$('#f_w').value,note:$('#f_n').value};
+    if(t=='Sales'){row.status=stt;row.paidDate=stt=='Lunas'?row.date:''}
     const nr=(await api('add',{t,row})).row;D[t].push(nr);render();if(t=='Sales')openInvoice(nr.id);else closeM();toast('Tersimpan, stok & saldo diperbarui');
   }catch(e){toast(e.message)}
 }
@@ -466,7 +502,7 @@ function invHTML(x){
   <div class="iv2"><div><b>INVOICE</b><div class="sx">No: ${code(x)}</div></div><div class="sx" style="text-align:right">Tanggal: ${fd(x.date)}<br>Kasir: ${esc(user)}</div></div>
   <table><tr><th>Item</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr><tr><td>${esc(iname(x))}</td><td class="r">${nf(x.qty)}</td><td class="r">${rp(x.price)}</td><td class="r">${rp(x.total)}</td></tr></table>
   <div class="tt"><span>TOTAL</span><span>${rp(x.total)}</span></div>
-  <div class="sx" style="margin-top:8px">Pembayaran: ${esc(wname(x.walletId))}${x.note?'<br>Catatan: '+esc(x.note):''}</div>
+  <div class="sx" style="margin-top:8px">${isPaid(x)?'Status: <b>LUNAS</b> · Pembayaran: '+esc(wname(x.walletId))+(x.paidDate&&x.paidDate!=x.date?' ('+fd(x.paidDate)+')':''):'Status: <b>BELUM LUNAS</b> (piutang)'}${x.note?'<br>Catatan: '+esc(x.note):''}</div>
   ${st.note?`<div class="ft">${nl(st.note)}</div>`:''}<div class="ft">Terima kasih atas kunjungan Anda</div></div>`;
 }
 function openInvoice(id){
@@ -477,7 +513,7 @@ function openInvoice(id){
 function setPaper(p){PAPER=p;localStorage.paper=p;openInvoice(INV)}
 function printInv(){$('#pg').textContent=PAPER=='rc'?'@page{size:80mm auto;margin:3mm}':'@page{size:A4;margin:14mm}';setTimeout(()=>window.print(),60)}
 const wMoves=w=>[
-  ...D.Sales.filter(s=>s.walletId==w.id).map(s=>({t:'sale',id:s.id,date:s.date,amt:+s.total,title:'Penjualan',sub:iname({...s,in:1}),code:code({...s,in:1})})),
+  ...D.Sales.filter(s=>isPaid(s)&&s.walletId==w.id).map(s=>({t:'sale',id:s.id,date:s.paidDate||s.date,amt:+s.total,title:(s.paidDate&&s.paidDate>s.date)?'Pelunasan piutang':'Penjualan',sub:iname({...s,in:1}),code:code({...s,in:1})})),
   ...D.Purchases.filter(s=>s.walletId==w.id).map(s=>({t:'buy',id:s.id,date:s.date,amt:-s.total,title:'Pembelian',sub:iname({...s,in:0}),code:code({...s,in:0})})),
   ...D.BalanceLog.filter(l=>l.walletId==w.id).map(l=>({t:'adj',id:l.id,date:l.date,amt:+l.amount,title:l.amount>0?'Tambah saldo':'Kurangi saldo',sub:l.note}))
 ].reverse().sort((a,b)=>b.date.localeCompare(a.date));
@@ -485,7 +521,7 @@ const moveRow=m=>`<div class="tx"><div class="av ${m.amt>0?'in':'out'}">${ic(m.t
 function walletList(){
   if(!D.Wallets.length)return '<div class="card mut">Belum ada Dompet/Rekening. Tambahkan lewat form di atas.</div>';
   return D.Wallets.map(x=>{
-    const b=bal(x),mv=wMoves(x),init=+x.initial||0,sa=sum(D.Sales.filter(s=>s.walletId==x.id)),pu=sum(D.Purchases.filter(s=>s.walletId==x.id)),adj=D.BalanceLog.filter(l=>l.walletId==x.id).reduce((a,l)=>a+ +l.amount,0);
+    const b=bal(x),mv=wMoves(x),init=+x.initial||0,sa=sum(D.Sales.filter(s=>isPaid(s)&&s.walletId==x.id)),pu=sum(D.Purchases.filter(s=>s.walletId==x.id)),adj=D.BalanceLog.filter(l=>l.walletId==x.id).reduce((a,l)=>a+ +l.amount,0);
     const sm=`<div class="ib">${ic(x.type=='Rekening'?'bank':'wallet')}</div><div class="tm"><b>${esc(x.name)}</b><small>${esc(x.type)}</small></div><span class="bdg ${b<0?'out':'in'}" style="white-space:nowrap">${rp(b)}</span>`;
     const body=`<div class="mut" style="margin:0 0 10px">Awal ${rp(init)} · Penjualan +${rp(sa)} · Pembelian -${rp(pu)} · Penyesuaian ${adj<0?'-':'+'}${rp(Math.abs(adj))}</div>
     <div class="acts"><button class="btn sm" onclick="openBal('${x.id}')">± Ubah Saldo</button><button class="btn sm alt" onclick="openEdit('Wallets','${x.id}')">Edit</button><button class="btn sm alt dng" onclick="del('Wallets','${x.id}')">Hapus</button></div>`+
@@ -538,13 +574,13 @@ async function saveAdj(k,id){
 // ---------- PDF ----------
 function pdf(){
   if(!window.jspdf)return toast('Library PDF belum termuat, coba lagi');
-  const[a,b]=rng(P.rep),t=txs(P.rep).reverse(),i=sum(t.filter(x=>x.in)),o=sum(t.filter(x=>!x.in));
+  const[a,b]=rng(P.rep),t=repTx(P.rep).reverse(),i=sum(t.filter(x=>x.in&&!x.due)),o=sum(t.filter(x=>!x.in)),pi=sum(t.filter(x=>x.due));
   const d=new window.jspdf.jsPDF();
   d.setFontSize(14);d.text('MyPOS - Laporan Keuangan',14,15);d.setFontSize(10);d.text(`Periode: ${fd(a)} s/d ${fd(b)}`,14,22);
   d.autoTable({startY:27,styles:{fontSize:7.5},headStyles:{fillColor:[15,118,110]},
     head:[['Tanggal','Kode','Jenis','Keterangan','Qty','Masuk','Keluar']],
-    body:t.map(x=>[fd(x.date),code(x),x.k,iname(x),nf(x.qty),x.in?rp(x.total):'',x.in?'':rp(x.total)]),
-    foot:[['','','','Total','',rp(i),rp(o)],['','','','Selisih saldo','',rp(i-o),'']],footStyles:{fillColor:[230,240,238],textColor:20}});
+    body:t.map(x=>[fd(x.date),code(x),x.k,iname(x),nf(x.qty),x.in&&!x.due?rp(x.total):'',x.in?'':rp(x.total)]),
+    foot:[['','','','Total','',rp(i),rp(o)],['','','','Selisih saldo','',rp(i-o),''],['','','','Piutang belum dibayar','',rp(pi),'']],footStyles:{fillColor:[230,240,238],textColor:20}});
   d.save(`mypos_laporan_${a}_${b}.pdf`);
 }
 
