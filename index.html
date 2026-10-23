@@ -201,7 +201,7 @@ const logsOf=(k,id)=>[...D.StockLog].reverse().filter(l=>l.kind==k&&l.itemId==id
 const logRow=l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qty>0?'plus':'minus')}</div><div class="tm"><b>${l.qty>0?'Tambah':'Kurangi'} stok</b><div class="meta"><span>${fd(l.date)}</span></div>${l.note?`<small>${esc(l.note)}</small>`:''}</div><span class="amt ${l.qty>0?'in':'out'}">${l.qty>0?'+':''}${nf(l.qty)}</span><button class="x" onclick="delLog('${l.id}')">${ic('trash')}</button></div>`;
 const accI=(id,sm,b)=>`<details class="card acc" ${OPEN[id]?'open':''} ontoggle="OPEN['${id}']=this.open"><summary class="sm">${sm}</summary><div class="ab">${b}</div></details>`;
 const EMPTY=()=>({Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[],StockLog:[],Store:[],BalanceLog:[],Payments:[]});
-let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1',LG=null,PAPER=localStorage.paper||'A4',INV=null,HW=null,SF='all',PAYID=null;
+let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1',LG=null,PAPER=localStorage.paper||'A4',INV=null,HW=null,SF='all',PAYID=null,STALE=false;
 const P={dash:{m:'this'},sales:{m:'week'},buy:{m:'week'},rep:{m:'week'}};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const NM={Products:'Produk',Materials:'Bahan Baku',Wallets:'Dompet/Rek.',Store:'Toko'};
@@ -258,23 +258,24 @@ function txs(p){
   const all=[...D.Sales.map(s=>({...s,k:'Penjualan',in:1})),...D.Purchases.map(s=>({...s,k:'Pembelian',in:0}))];
   return(p?all.filter(x=>inR(x,p)):all).sort((a,b)=>b.date.localeCompare(a.date));
 }
+const isCr=s=>s.status=='Piutang'||!String(s.walletId??'').trim(); // penjualan tanpa dompet = belum dibayar
 const validPays=()=>{const ids=new Set(D.Sales.map(s=>s.id));return D.Payments.filter(p=>ids.has(p.saleId))};
-const paidAmt=s=>s.status=='Piutang'?D.Payments.filter(p=>p.saleId==s.id).reduce((a,p)=>a+ +p.amount,0):+s.total;
+const paidAmt=s=>isCr(s)?D.Payments.filter(p=>p.saleId==s.id).reduce((a,p)=>a+ +p.amount,0):+s.total;
 const rest=s=>Math.max(0,(+s.total)-paidAmt(s));
 const isPaid=s=>rest(s)<=0;
-const stT=s=>s.status!='Piutang'||rest(s)<=0?'Lunas':paidAmt(s)>0?'Cicil':'Piutang';
+const stT=s=>!isCr(s)||rest(s)<=0?'Lunas':paidAmt(s)>0?'Cicil':'Piutang';
 const cashSales=()=>[
-  ...D.Sales.filter(s=>s.status!='Piutang').map(s=>({...s,sd:s.date,date:s.paidDate||s.date})),
+  ...D.Sales.filter(s=>!isCr(s)).map(s=>({...s,sd:s.date,date:s.paidDate||s.date})),
   ...validPays().map(p=>{const s=D.Sales.find(x=>x.id==p.saleId);return{...s,sd:s.date,date:p.date,total:+p.amount,walletId:p.walletId,pay:1}})
 ];
 const repTx=p=>[
   ...cashSales().filter(x=>inR(x,p)).map(s=>({...s,k:s.pay?'Pembayaran Piutang':'Penjualan',in:1})),
-  ...D.Sales.filter(s=>s.status=='Piutang'&&rest(s)>0&&inR(s,p)).map(s=>({...s,k:'Piutang',in:1,due:1,rest:rest(s)})),
+  ...D.Sales.filter(s=>isCr(s)&&rest(s)>0&&inR(s,p)).map(s=>({...s,k:'Piutang',in:1,due:1,rest:rest(s)})),
   ...D.Purchases.filter(s=>inR(s,p)).map(s=>({...s,k:'Pembelian',in:0}))
 ].sort((a,b)=>b.date.localeCompare(a.date));
 const code=x=>(x.in?'PJ':'PB')+'-'+(x.sd||x.date).replace(/-/g,'').slice(2)+'-'+String(x.id).slice(0,4).toUpperCase();
 const iname=x=>((x.in?D.Products:D.Materials).find(i=>i.id==x.itemId)||{}).name||x.item;
-const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span>${x.in?`<span class="chip ${stT(x)=='Lunas'?'ok':'due'}">${stT(x)}</span>`:''}</div><small>${x.in&&x.status=='Piutang'?(paidAmt(x)>0?'Dibayar '+rp(paidAmt(x))+' · Sisa '+rp(rest(x)):'Belum dibayar · Sisa '+rp(rest(x))):esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small>${del=='Sales'&&x.status=='Piutang'?`<button class="btn sm" style="margin-top:6px" onclick="openPay('${x.id}')">${rest(x)>0?'Terima Pembayaran':'Lihat Pembayaran'}</button>`:''}</div><span class="amt ${x.in?(stT(x)=='Lunas'?'in':'dueamt'):'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del=='Sales'?`<button class="x" title="Cetak invoice" onclick="openInvoice('${x.id}')">${ic('print')}</button>`:''}${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
+const txRow=(x,del)=>`<div class="tx"><div class="av ${x.in?'in':'out'}">${ic(x.in?'down':'up')}</div><div class="tm"><b>${esc(iname(x))}</b><div class="meta"><span class="code">${code(x)}</span><span>${fd(x.date)}</span>${x.in?`<span class="chip ${stT(x)=='Lunas'?'ok':'due'}">${stT(x)}</span>`:''}</div><small>${x.in&&isCr(x)?(paidAmt(x)>0?'Dibayar '+rp(paidAmt(x))+' · Sisa '+rp(rest(x)):'Belum dibayar · Sisa '+rp(rest(x))):esc(wname(x.walletId))} · ${nf(x.qty)} × ${rp(x.price)}${x.note?' · '+esc(x.note):''}</small>${del=='Sales'&&isCr(x)?`<button class="btn sm" style="margin-top:6px" onclick="openPay('${x.id}')">${rest(x)>0?'Terima Pembayaran':'Lihat Pembayaran'}</button>`:''}</div><span class="amt ${x.in?(stT(x)=='Lunas'?'in':'dueamt'):'out'}">${x.in?'+':'-'}${rp(x.total)}</span>${del=='Sales'?`<button class="x" title="Cetak invoice" onclick="openInvoice('${x.id}')">${ic('print')}</button>`:''}${del?`<button class="x" onclick="del('${del}','${x.id}')">${ic('trash')}</button>`:''}</div>`;
 
 // ---------- tampilan ----------
 const V={
@@ -338,7 +339,7 @@ function list(t){
 function render(){
   if(!tok)return authUI();
   const fab=view=='rep'?`<button class="fab" onclick="pdf()">${ic('dl')}<span>PDF</span></button>`:(view=='sales'||view=='buy')?`<button class="fab" onclick="openAdd('${view=='sales'?'Sales':'Purchases'}')">${ic('plus')}</button>`:'';
-  $('#app').innerHTML=`<div class="content"><header><div class="logo h"><i>M</i>MyPOS</div><button class="me" onclick="if(confirm('Keluar dari akun?'))logout()"><b>${esc(user[0])}</b>Keluar</button></header><main><h1><span class="ib">${ic(view)}</span>${T[view]}</h1>${V[view]()}</main></div>${fab}<nav><div class="brand"><div class="logo"><i>M</i>MyPOS</div></div>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg><span>${T[k]}</span></button>`).join('')}</nav>`;
+  $('#app').innerHTML=`<div class="content"><header><div class="logo h"><i>M</i>MyPOS</div><button class="me" onclick="if(confirm('Keluar dari akun?'))logout()"><b>${esc(user[0])}</b>Keluar</button></header><main><h1><span class="ib">${ic(view)}</span>${T[view]}</h1>${STALE?'<div class="card" style="border-color:#d97706;color:#d97706"><b>Backend belum versi terbaru.</b> Tempel ulang Code.gs di Apps Script lalu Deploy → New version. Sebelum itu, status piutang dan pembayaran bisa tidak tersimpan.</div>':''}${V[view]()}</main></div>${fab}<nav><div class="brand"><div class="logo"><i>M</i>MyPOS</div></div>${Object.keys(T).map(k=>`<button class="${k==view?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg><span>${T[k]}</span></button>`).join('')}</nav>`;
 }
 function go(v){if(v!=view){view=v;history.pushState({v},'')}render();scrollTo(0,0)}
 
@@ -357,7 +358,7 @@ async function auth(){
   }catch(e){toast(e.message)}
 }
 function logout(){tok=user=null;localStorage.removeItem('tk');localStorage.removeItem('us');D=EMPTY();render()}
-async function sync(){try{const j=(await api('sync')).data;['Sales','Purchases','StockLog','BalanceLog','Payments'].forEach(k=>(j[k]||[]).forEach(x=>x.date=nd(x.date)));(j.Sales||[]).forEach(x=>x.paidDate=x.paidDate?nd(x.paidDate):'');D={...EMPTY(),...j};render()}catch(e){toast(e.message)}}
+async function sync(){try{const rs=await api('sync');STALE=(rs.ver||0)<10;const j=rs.data;['Sales','Purchases','StockLog','BalanceLog','Payments'].forEach(k=>(j[k]||[]).forEach(x=>x.date=nd(x.date)));(j.Sales||[]).forEach(x=>x.paidDate=x.paidDate?nd(x.paidDate):'');D={...EMPTY(),...j};render()}catch(e){toast(e.message)}}
 
 // ---------- transaksi ----------
 function openAdd(t){
@@ -531,7 +532,7 @@ function invHTML(x){
   <div class="iv2"><div><b>INVOICE</b><div class="sx">No: ${code(x)}</div></div><div class="sx" style="text-align:right">Tanggal: ${fd(x.date)}<br>Kasir: ${esc(user)}</div></div>
   <table><tr><th>Item</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr><tr><td>${esc(iname(x))}</td><td class="r">${nf(x.qty)}</td><td class="r">${rp(x.price)}</td><td class="r">${rp(x.total)}</td></tr></table>
   <div class="tt"><span>TOTAL</span><span>${rp(x.total)}</span></div>
-  <div class="sx" style="margin-top:8px">${x.status!='Piutang'?'Status: <b>LUNAS</b> · Pembayaran: '+esc(wname(x.walletId)):(rest(x)<=0?'Status: <b>LUNAS</b>':'Status: <b>BELUM LUNAS</b>')+'<br>Dibayar: '+rp(paidAmt(x))+' · Sisa: '+rp(rest(x))}${x.note?'<br>Catatan: '+esc(x.note):''}</div>
+  <div class="sx" style="margin-top:8px">${!isCr(x)?'Status: <b>LUNAS</b> · Pembayaran: '+esc(wname(x.walletId)):(rest(x)<=0?'Status: <b>LUNAS</b>':'Status: <b>BELUM LUNAS</b>')+'<br>Dibayar: '+rp(paidAmt(x))+' · Sisa: '+rp(rest(x))}${x.note?'<br>Catatan: '+esc(x.note):''}</div>
   ${st.note?`<div class="ft">${nl(st.note)}</div>`:''}<div class="ft">Terima kasih atas kunjungan Anda</div></div>`;
 }
 function openInvoice(id){
