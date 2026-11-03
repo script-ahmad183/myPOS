@@ -186,6 +186,13 @@ textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px #14b8a62e}
 .inv.rep table{font-size:10.5px}
 .inv.rep th,.inv.rep td{padding:5px 3px}
 @media print{.sc{overflow:visible!important}}
+.seg.scr{overflow-x:auto;scrollbar-width:none}
+.seg.scr::-webkit-scrollbar{display:none}
+.seg.scr button{flex:none;padding:9px 14px;white-space:nowrap}
+.wk{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:6px;box-shadow:var(--sh)}
+.wk button{width:38px;height:34px;border:0;border-radius:10px;background:var(--bg2);color:var(--tx);font-size:18px}
+.wk button:disabled{opacity:.35}
+.wk span{flex:1;text-align:center;font-weight:600;font-size:13px}
 </style><style id="pg"></style></head>
 <body>
 <div id="app"></div><div id="md" onclick="if(event.target==this)closeM()"><div id="mb"></div></div><div id="toast"></div>
@@ -225,7 +232,7 @@ const logRow=l=>`<div class="tx"><div class="av ${l.qty>0?'in':'out'}">${ic(l.qt
 const accI=(id,sm,b)=>`<details class="card acc" ${OPEN[id]?'open':''} ontoggle="OPEN['${id}']=this.open"><summary class="sm">${sm}</summary><div class="ab">${b}</div></details>`;
 const EMPTY=()=>({Wallets:[],Products:[],Materials:[],Sales:[],Purchases:[],StockLog:[],Store:[],BalanceLog:[],Payments:[],DebtPayments:[]});
 let tok=localStorage.tk,user=localStorage.us,view='dash',mode='login',stab='Wallets',sk='Products',D=EMPTY(),FT='Sales',OPEN={},dw='all',HK=null,HID=localStorage.hid=='1',LG=null,PAPER=localStorage.paper||'A4',INV=null,HW=null,SF='all',SFB='all',PAYID=null,DEBTID=null,STALE=false,RT='all',RW='all';
-const P={dash:{m:'this'},sales:{m:'week'},buy:{m:'week'},rep:{m:'week'}};
+const P={dash:{m:'this'},sales:{m:'week'},buy:{m:'week'},rep:{m:'week'},stock:{m:'week'}};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const NM={Products:'Produk',Materials:'Bahan Baku',Wallets:'Dompet/Rek.',Store:'Toko'};
 const acc=(id,t,b,def)=>`<details class="card acc" ${(OPEN[id]??def)?'open':''} ontoggle="OPEN['${id}']=this.open"><summary>${t}</summary><div class="ab">${b}</div></details>`;
@@ -248,6 +255,7 @@ const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Stri
 function rng(p){
   const t=today(),pad=n=>String(n).padStart(2,'0');
   if(p.m=='range')return[p.from||'0000-01-01',p.to||'9999-12-31'];
+  if(p.m=='mon'){const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+7*(p.off||0));const e=new Date(d);e.setDate(d.getDate()+6);return[ymd(d),ymd(e)]}
   if(p.m=='week'){const e=new Date(),b=new Date();b.setDate(e.getDate()-6);return[ymd(b),ymd(e)]}
   const m=(p.m=='month'&&p.month)||t.slice(0,7);
   return[m+'-01',m+'-'+pad(new Date(m.slice(0,4),m.slice(5),0).getDate())];
@@ -255,15 +263,17 @@ function rng(p){
 const inR=(x,p)=>{const[a,b]=rng(p);return x.date>=a&&x.date<=b};
 function periodUI(k){
   const p=P[k],c=(v,l)=>`<button class="${p.m==v?'on':''}" onclick="setP('${k}','m','${v}')">${l}</button>`;
-  return `<div class="seg">${k=='dash'?c('this','Bulan ini'):c('week','Minggu ini')}${c('month','Pilih bulan')}${c('range','Rentang')}</div>`+
+  return `<div class="seg">${k=='dash'?c('this','Bulan ini'):c('week','Minggu ini')+c('mon','Sen–Min')}${c('month','Pilih bulan')}${c('range','Rentang')}</div>`+(p.m=='mon'?`<div class="wk"><button onclick="wkNav('${k}',-1)">‹</button><span>${wkLabel(p)}</span><button onclick="wkNav('${k}',1)" ${(p.off||0)>=0?'disabled':''}>›</button></div>`:'')+
   (p.m=='month'?`<input type="month" value="${p.month||today().slice(0,7)}" onchange="setP('${k}','month',this.value)">`:'')+
   (p.m=='range'?`<div class="g2" style="margin-bottom:0"><div><label>Tanggal awal</label><input type="date" value="${p.from||''}" ${p.to?`max="${p.to}"`:''} onchange="setP('${k}','from',this.value)"></div><div><label>Tanggal akhir</label><input type="date" value="${p.to||''}" ${p.from?`min="${p.from}"`:''} onchange="setP('${k}','to',this.value)"></div></div>`:'');
 }
+function wkNav(k,d){const p=P[k];p.off=Math.min(0,(p.off||0)+d);render()}
+const wkLabel=p=>{const[a,b]=rng(p);return fd(a)+' – '+fd(b)+((p.off||0)==0?' (minggu ini)':'')};
 function setP(k,f,v){
   const p=P[k];
   if(f=='from'&&v&&p.to&&v>p.to){toast('Tanggal awal tidak boleh lebih besar dari tanggal akhir');return render()}
   if(f=='to'&&v&&p.from&&v<p.from){toast('Tanggal akhir tidak boleh lebih kecil dari tanggal awal');return render()}
-  p[f]=v;if(f=='m'&&v=='month'&&!p.month)p.month=today().slice(0,7);render();
+  p[f]=v;if(f=='m'&&v=='mon'&&p.off==null)p.off=0;if(f=='m'&&v=='month'&&!p.month)p.month=today().slice(0,7);render();
 }
 
 // ---------- data & stok ----------
@@ -338,14 +348,16 @@ const V={
   sales:()=>list('Sales'),
   buy:()=>list('Purchases'),
   stock(){
-    const k=sk,items=D[k],low=items.filter(x=>isLow(k,x)).length;
-    return `<div class="seg">${['Products','Materials'].map(t=>`<button class="${t==k?'on':''}" onclick="sk='${t}';render()">${NM[t]}</button>`).join('')}</div>
-    <div class="g2"><div class="card"><div class="mut">Jumlah item</div><div class="big">${items.length}</div></div><div class="card"><div class="mut">Stok menipis</div><div class="big ${low?'out':''}">${low}</div></div></div>`+
+    const k=sk,items=D[k],low=items.filter(x=>isLow(k,x)).length,[a,b]=rng(P.stock),P_=k=='Products';
+    const kv=(l,v)=>`<div class="kv"><span>${l}</span><span>${v}</span></div>`;
+    return `<div class="seg">${['Products','Materials'].map(t=>`<button class="${t==k?'on':''}" onclick="sk='${t}';render()">${NM[t]}</button>`).join('')}</div>`+periodUI('stock')+
+    `<div class="g2"><div class="card"><div class="mut">Jumlah item</div><div class="big">${items.length}</div></div><div class="card"><div class="mut">Stok menipis</div><div class="big ${low?'out':''}">${low}</div></div></div>`+
     (items.map(x=>{
-      const s=stk(k,x),lo=isLow(k,x),lg=logsOf(k,x.id);
-      const sm=`<div class="ib ${lo?'out':'in'}">${ic('stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(s.init)} · ${k=='Products'?'Terjual':'Dibeli'} ${nf(s.mv)} · Koreksi ${s.adj>0?'+':''}${nf(s.adj)}</small></div><span class="bdg ${lo?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="event.preventDefault();event.stopPropagation();openAdj('${k}','${x.id}')">Atur</button>`;
-      const b=lg.length?`<div class="mut" style="margin-bottom:2px">5 riwayat penyesuaian terakhir</div>${lg.slice(0,5).map(logRow).join('')}<a href="#" class="more" onclick="openHist('${k}','${x.id}');return false">Lihat Selengkapnya (${lg.length}) →</a>`:'<div class="mut" style="padding:2px 0 8px">Belum ada riwayat penyesuaian.</div>';
-      return accI('sk'+x.id,sm,b);
+      const s=stk(k,x),lo=isLow(k,x),lg=logsOf(k,x.id),q=stkP(k,x,a,b);
+      const sm=`<div class="ib ${lo?'out':'in'}">${ic('stock')}</div><div class="tm"><b>${esc(x.name)}</b><small>Awal ${nf(q.awal)} · Masuk +${nf(q.masuk)} · Keluar -${nf(q.keluar)}</small></div><span class="bdg ${lo?'out':'in'}">${nf(s.cur)}</span><button class="btn sm" onclick="event.preventDefault();event.stopPropagation();openAdj('${k}','${x.id}')">Atur</button>`;
+      const per=`<div class="dt">${kv('Stok awal periode',nf(q.awal))}${kv('Masuk',`+${nf(q.masuk)}${P_?'':' (dibeli '+nf(q.mq)+')'}`)}${kv('Keluar',`-${nf(q.keluar)}${P_?' (terjual '+nf(q.mq)+')':''}`)}${kv('Stok akhir periode',nf(q.akhir))}${kv('Stok saat ini','<b>'+nf(s.cur)+'</b>')}</div>`;
+      const h=lg.length?`<div class="mut" style="margin-bottom:2px">5 riwayat penyesuaian terakhir</div>${lg.slice(0,5).map(logRow).join('')}<a href="#" class="more" onclick="openHist('${k}','${x.id}');return false">Lihat Selengkapnya (${lg.length}) →</a>`:'<div class="mut" style="padding:2px 0 8px">Belum ada riwayat penyesuaian.</div>';
+      return accI('sk'+x.id,sm,per+h);
     }).join('')||`<div class="card mut">Belum ada ${NM[k]}. Tambahkan di Setting.</div>`);
   },
   rep(){
@@ -638,7 +650,7 @@ const wMoves=w=>[
   ...D.Sales.filter(s=>s.status!='Piutang'&&s.walletId==w.id).map(s=>({t:'sale',id:s.id,date:s.paidDate||s.date,amt:+s.total,title:'Penjualan',sub:iname({...s,in:1}),code:code({...s,in:1})})),
   ...validDP().filter(d=>d.walletId==w.id).map(d=>{const p=D.Purchases.find(x=>x.id==d.purchaseId);return{t:'dpay',id:d.id,date:d.date,amt:-d.amount,title:'Pembayaran utang',sub:iname({...p,in:0}),code:code({...p,in:0})}}),
   ...D.Purchases.filter(s=>!isDb(s)&&s.walletId==w.id).map(s=>({t:'buy',id:s.id,date:s.date,amt:-s.total,title:'Pembelian',sub:iname({...s,in:0}),code:code({...s,in:0})})),
-  ...D.BalanceLog.filter(l=>l.walletId==w.id).map(l=>({t:'adj',id:l.id,date:l.date,amt:+l.amount,title:l.ref?(l.amount>0?'Transfer masuk':'Transfer keluar'):(l.amount>0?'Tambah saldo':'Kurangi saldo'),sub:l.note}))
+  ...D.BalanceLog.filter(l=>l.walletId==w.id).map(l=>({t:'adj',id:l.id,date:l.date,amt:+l.amount,title:l.ref?(l.amount>0?'Transfer masuk':'Transfer keluar'):(l.amount>0?'Tambah saldo':'Kurangi saldo'),sub:l.note,ref:l.ref}))
 ].reverse().sort((a,b)=>b.date.localeCompare(a.date));
 const moveRow=m=>`<div class="tx"><div class="av ${m.amt>0?'in':'out'}">${ic(m.t=='sale'?'down':m.t=='buy'?'up':(m.amt>0?'plus':'minus'))}</div><div class="tm"><b>${m.title}</b><div class="meta">${m.code?`<span class="code">${m.code}</span>`:''}<span>${fd(m.date)}</span></div>${m.sub?`<small>${esc(m.sub)}</small>`:''}</div><span class="amt ${m.amt>0?'in':'out'}">${m.amt>0?'+':'-'}${rp(Math.abs(m.amt))}</span>${m.t=='adj'?`<button class="x" onclick="delBal('${m.id}')">${ic('trash')}</button>`:m.t=='pay'?`<button class="x" onclick="delPay('${m.id}')">${ic('trash')}</button>`:m.t=='dpay'?`<button class="x" onclick="delDebtPay('${m.id}')">${ic('trash')}</button>`:''}</div>`;
 function walletList(){
@@ -719,6 +731,13 @@ async function saveAdj(k,id){
 }
 
 // ---------- PDF ----------
+function stkP(k,it,a,b){
+  const adjs=D.StockLog.filter(l=>l.kind==k&&l.itemId==it.id),mvs=(k=='Products'?D.Sales:D.Purchases).filter(x=>x.itemId==it.id),P_=k=='Products';
+  const awal=(+it.stock||0)+adjs.filter(l=>l.date<a).reduce((q,l)=>q+ +l.qty,0)+(P_?-1:1)*mvs.filter(x=>x.date<a).reduce((q,x)=>q+ +x.qty,0);
+  const inP=x=>x.date>=a&&x.date<=b,aIn=adjs.filter(l=>inP(l)&&l.qty>0).reduce((q,l)=>q+ +l.qty,0),aOut=adjs.filter(l=>inP(l)&&l.qty<0).reduce((q,l)=>q-l.qty,0);
+  const mq=mvs.filter(inP).reduce((q,x)=>q+ +x.qty,0),masuk=aIn+(P_?0:mq),keluar=aOut+(P_?mq:0);
+  return{awal,masuk,keluar,mq,akhir:awal+masuk-keluar};
+}
 const perLabel=p=>{const[a,b]=rng(p);if(p.m=='range'){if(!p.from&&!p.to)return 'Semua tanggal';return(p.from?fd(p.from):'Awal')+' s/d '+(p.to?fd(p.to):'Sekarang')}return fd(a)+' s/d '+fd(b)};
 function repData(type){
   const p=P.rep,[a,b]=rng(p),per=perLabel(p);
@@ -734,6 +753,24 @@ function repData(type){
       body:rows.map(x=>[fd(x.date),code(x),iname(x),nf(x.qty),rp(x.price),rp(x.total),rp(pa(x)),rp(re(x)),stf(x)]),
       foot:[['','','Total',nf(Q),'',rp(T),rp(Pd),rp(T-Pd),'']],
       extra:{title:S?'Rekap per Produk':'Rekap per Bahan Baku',head:[S?'Produk':'Bahan Baku','Qty','Total'],right:[1,2],body:rk.map(([n,v])=>[n,nf(v.q),rp(v.t)]),foot:[['Total',nf(Q),rp(T)]]}};
+  }
+  if(type=='balchg'){
+    if(RW!='all'&&!D.Wallets.some(w=>w.id==RW))RW='all';
+    const ws=RW=='all'?D.Wallets:D.Wallets.filter(w=>w.id==RW);
+    const cat=m=>m.t=='sale'||m.t=='pay'?'rec':m.t=='buy'||m.t=='dpay'?'pay':m.ref?'trf':'adj',sg=v=>(v>0?'+':'')+rp(v);
+    const cs=ws.map(w=>{const mv=wMoves(w),open=(+w.initial||0)+mv.filter(m=>m.date<a).reduce((q,m)=>q+m.amt,0);
+      const pm=mv.filter(m=>m.date>=a&&m.date<=b).reverse().sort((x,y)=>x.date.localeCompare(y.date)),sm=c=>pm.filter(m=>cat(m)==c).reduce((q,m)=>q+m.amt,0);
+      const r={w,open,pm,rec:sm('rec'),pay:sm('pay'),adj:sm('adj'),trf:sm('trf')};r.close=open+r.rec+r.pay+r.adj+r.trf;return r});
+    const S=k=>cs.reduce((q,c)=>q+c[k],0);
+    const det=cs.flatMap(c=>c.pm.filter(m=>cat(m)=='adj'||cat(m)=='trf').map(m=>({d:m.date,w:c.w.name,t:m.title,n:m.sub||'',amt:m.amt}))).sort((x,y)=>x.d.localeCompare(y.d));
+    return{title:'Laporan Perubahan Saldo'+(RW=='all'?'':' - '+cs[0].w.name),per,wide:true,
+      summary:[['Saldo awal',rp(S('open'))],['Penerimaan (penjualan & piutang)',sg(S('rec'))],['Pembayaran (pembelian & utang)',sg(S('pay'))],['Tambah/kurang saldo',sg(S('adj'))],['Transfer (bersih)',sg(S('trf'))],['Saldo akhir',rp(S('close'))]],
+      head:['Dompet/Rekening','Saldo awal','Penerimaan','Pembayaran','Tambah/Kurang','Transfer','Saldo akhir','Perubahan'],right:[1,2,3,4,5,6,7],
+      body:cs.map(c=>[c.w.name,rp(c.open),sg(c.rec),sg(c.pay),sg(c.adj),sg(c.trf),rp(c.close),sg(c.close-c.open)]),
+      foot:[['Total',rp(S('open')),sg(S('rec')),sg(S('pay')),sg(S('adj')),sg(S('trf')),rp(S('close')),sg(S('close')-S('open'))]],
+      extra:{title:'Rincian Tambah/Kurang Saldo & Transfer',head:['Tanggal','Dompet/Rekening','Jenis','Keterangan','Masuk','Keluar'],right:[4,5],
+        body:det.map(x=>[fd(x.d),x.w,x.t,x.n,x.amt>0?rp(x.amt):'',x.amt<0?rp(-x.amt):'']),
+        foot:[['','','','Total',rp(det.reduce((q,x)=>q+(x.amt>0?x.amt:0),0)),rp(det.reduce((q,x)=>q+(x.amt<0?-x.amt:0),0))]]}};
   }
   if(type=='wallet'){
     if(RW!='all'&&!D.Wallets.some(w=>w.id==RW))RW='all';
@@ -766,10 +803,10 @@ function tbl(h,b,f,right,cls){
   const c=(v,i,t='td')=>`<${t} class="${right.includes(i)?'r':''}">${esc(v)}</${t}>`;
   return `<table class="${cls||''}"><tr>${h.map((v,i)=>c(v,i,'th')).join('')}</tr>${b.map(r=>`<tr>${r.map((v,i)=>c(v,i)).join('')}</tr>`).join('')||`<tr><td colspan="${h.length}">Tidak ada data pada periode ini</td></tr>`}${(f||[]).map(r=>`<tr class="tf">${r.map((v,i)=>c(v,i)).join('')}</tr>`).join('')}</table>`;
 }
-const repTabs=()=>`<div class="seg">${[['all','Semua'],['sales','Penjualan'],['buys','Pembelian'],['wallet','Dompet']].map(([v,l])=>`<button class="${RT==v?'on':''}" onclick="RT='${v}';render()">${l}</button>`).join('')}</div>`;
+const repTabs=()=>`<div class="seg scr">${[['all','Semua'],['sales','Penjualan'],['buys','Pembelian'],['wallet','Mutasi Dompet'],['balchg','Perubahan Saldo']].map(([v,l])=>`<button class="${RT==v?'on':''}" onclick="RT='${v}';render()">${l}</button>`).join('')}</div>`;
 function repScreen(){
   const d=repData(RT);
-  return periodUI('rep')+(RT=='wallet'?`<select onchange="RW=this.value;render()"><option value="all">Semua dompet & rekening</option>${D.Wallets.map(w=>`<option value="${w.id}" ${RW==w.id?'selected':''}>${esc(w.name)}</option>`).join('')}</select>`:'')+
+  return periodUI('rep')+(RT=='wallet'||RT=='balchg'?`<select onchange="RW=this.value;render()"><option value="all">Semua dompet & rekening</option>${D.Wallets.map(w=>`<option value="${w.id}" ${RW==w.id?'selected':''}>${esc(w.name)}</option>`).join('')}</select>`:'')+
   `<div class="g2" style="margin-bottom:12px">${d.summary.map(([k,v])=>`<div class="card"><div class="mut">${k}</div><b>${esc(v)}</b></div>`).join('')}</div>
   <div class="card sc">${tbl(d.head,d.body,d.foot,d.right,'tbl')}</div>`+
   (d.extra?`<div class="card sc"><h4>${esc(d.extra.title)}</h4>${tbl(d.extra.head,d.extra.body,d.extra.foot,d.extra.right,'tbl')}</div>`:'');
